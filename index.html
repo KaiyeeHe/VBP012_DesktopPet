@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>🐆 金钱豹</title>
+    <style>
+        /* === 全局环境 === */
+        body {
+            /* 完全透明背景 */
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+            font-family: "Menlo", "Monaco", -apple-system, monospace;
+            user-select: none;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: default; /* Default cursor */
+            pointer-events: none; /* Allow clicks to pass through by default */
+        }
+
+        #main-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; /* 默认穿透 */
+        }
+
+        /* === 气泡提示 === */
+        .bubble-container {
+            height: 60px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin-bottom: 5px;
+            z-index: 200;
+            pointer-events: auto; /* 气泡可交互 */
+        }
+
+        .bubble {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #000;
+            padding: 10px 18px; /* 稍微加大一点内边距 */
+            border-radius: 16px;
+            width: max-content;
+            max-width: 200px;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+            animation: pop-in 0.3s;
+        }
+        
+        .bubble::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%);
+            border-width: 8px 8px 0; border-style: solid; border-color: #000 transparent transparent transparent;
+        }
+        .bubble h3 { margin: 0; font-size: 14px; color: #000; font-weight: 800; line-height: 1.4; }
+        .bubble p { margin: 4px 0 0 0; font-size: 12px; color: #333; font-weight: bold; }
+        .urgent-mode .bubble { border-color: #d35400; animation: shake-tiny 0.2s infinite; }
+
+        /* === 视觉区域 === */
+        #pet-visual-area {
+            width: 200px;
+            height: 160px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto; 
+            position: relative;
+        }
+
+        .leopard-visual {
+            font-size: 100px; 
+            filter: drop-shadow(0px 8px 10px rgba(0,0,0,0.15)); 
+            user-select: none;
+            -webkit-user-drag: none;
+            pointer-events: none;
+            animation: idle-bounce 2.5s infinite ease-in-out; 
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+            transform-origin: bottom center;
+        }
+
+        /* === 💎 纯白不透明状态栏 === */
+        #status-bar {
+            background: #ffffff;
+            border: 2px solid #000000;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            border-radius: 16px 0 16px 16px; /* 右上角无圆角 */
+            padding: 10px 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0px; /* 去掉gap，用padding控制 */
+
+            margin-top: 10px;
+            pointer-events: auto;
+            z-index: 150;
+            min-width: 130px;
+            position: relative; /* 为右上角按钮定位 */
+        }
+
+        /* 右上角按钮组 - 旗帜样式 */
+        .corner-buttons {
+            position: absolute;
+            top: -2px; /* 与状态栏顶部边框对齐 */
+            right: -30px; /* 稍微调整位置 */
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            z-index: 200;
+        }
+
+        .corner-btn {
+            width: 30px;
+            height: 28px;
+            background: #fff;
+            border: 2px solid #000;
+            border-left: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: #000;
+            padding: 0;
+            transition: all 0.2s ease;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+            pointer-events: auto; /* 确保按钮可点击 */
+            position: relative;
+            z-index: 250; /* 提高层级确保在最上面 */
+        }
+
+        .corner-btn:first-child {
+            border-radius: 0 8px 0 0;
+            border-top: 2px solid #000;
+        }
+
+        .corner-btn:not(:first-child):not(:last-child) {
+            margin-top: -2px; /* 中间按钮上移让边框重叠 */
+        }
+
+        .corner-btn:last-child {
+            border-radius: 0 0 8px 0;
+            margin-top: -2px; /* 上移2px让边框重叠 */
+        }
+
+        .corner-btn:hover {
+            background: #f5f5f5;
+            transform: translateX(2px);
+            box-shadow: 4px 0 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .corner-btn:active {
+            transform: translateX(0);
+        }
+
+        /* ⚡️ 第一行：高度锁定 */
+        .status-row-top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            height: 32px; /* 锁定高度与按钮一致 */
+            border-bottom: 1px dashed rgba(0,0,0,0.2); 
+            margin-bottom: 8px; /* 上下间距 */
+        }
+
+        /* ⚡️ 第二行：高度锁定 */
+        .controls {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 32px; /* 锁定高度 */
+        }
+
+        .status-text {
+            font-size: 15px; 
+            font-weight: 800;
+            color: #000; 
+            line-height: 1;
+            padding-top: 2px;
+        }
+        .status-text.resting { color: #d35400; }
+        .divider { width: 2px; height: 16px; background-color: #000; } 
+
+        /* === 纯色按钮 (不透明) === */
+        .mini-btn {
+            width: 30px; height: 30px;
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-radius: 8px;
+            cursor: pointer; display: flex; justify-content: center; align-items: center;
+            font-size: 15px; color: #222; padding: 0;
+            transition: all 0.2s ease;
+        }
+
+        .mini-btn:hover {
+            background: #e8e8e8;
+            border-color: #ccc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .mini-btn:active { transform: translateY(1px); background: #ddd; }
+
+        /* === 辅助元素 === */
+        #countdown-display { font-size: 32px; font-weight: 900; color: #000; display: none; margin: 4px 0; }
+        #finish-btn {
+            background: #000; color: #fff; border: 2px solid #000; padding: 8px 24px; border-radius: 30px;
+            cursor: pointer; font-weight: 900; display: none; margin: 5px auto 0; font-size: 15px;
+            pointer-events: auto; transition: transform 0.1s; box-shadow: 0 4px #555;
+        }
+        #finish-btn:active { transform: translateY(4px); box-shadow: 0 0 #555; }
+
+        /* === 🚁 优化：高频摇摆起飞 (High Freq Wiggle) === */
+        .anim-takeoff { animation: takeoff-wiggle 2s ease-in-out forwards !important; }
+        
+        @keyframes takeoff-wiggle {
+            0% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+            10% { transform: translateY(10px) scale(1.2, 0.8) rotate(0deg); } 
+            
+            /* ⚡️ 快速左右摇摆 */
+            20% { transform: translateY(-60px) rotate(-20deg); }
+            30% { transform: translateY(-100px) rotate(20deg); }
+            40% { transform: translateY(-130px) rotate(-20deg); }
+            50% { transform: translateY(-140px) rotate(20deg); }
+            60% { transform: translateY(-130px) rotate(-20deg); }
+            70% { transform: translateY(-100px) rotate(10deg); }
+            
+            80% { transform: translateY(0) scale(1, 1) rotate(0deg); } 
+            90% { transform: translateY(5px) scale(1.1, 0.9) rotate(0deg); } 
+            100% { transform: translateY(0) scale(1, 1) rotate(0deg); }
+        }
+
+        /* === 💃 快乐摇摆 === */
+        .anim-wiggle { animation: wiggle-happy 1s ease-in-out forwards !important; }
+        @keyframes wiggle-happy {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+
+        /* 特效类 */
+        .anim-rub { animation: rub-head 0.4s infinite alternate !important; }
+        @keyframes rub-head { 0% { transform: scale(1.1) rotate(-5deg); } 100% { transform: scale(1.1) rotate(5deg); } }
+        .heart-emoji { position: absolute; font-size: 24px; pointer-events: none; z-index: 999; animation: float-heart 1s forwards ease-out; }
+        @keyframes float-heart { 0% { opacity: 1; transform: translateY(0) scale(0.5); } 100% { opacity: 0; transform: translateY(-60px) scale(1.2); } }
+        .reward-emoji { position: absolute; font-size: 40px; pointer-events: none; z-index: 999; left: 50%; top: 50%; animation: explode 1.2s forwards cubic-bezier(0.25, 1, 0.5, 1); }
+        @keyframes explode { 0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; } 100% { transform: translate(var(--tx), var(--ty)) scale(1.5); opacity: 0; } }
+        
+        @keyframes pop-in { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes idle-bounce { 0%, 100% { transform: scale(1, 1) translateY(0); } 50% { transform: scale(1.05, 0.96) translateY(6px); } }
+        @keyframes shake-tiny { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
+        
+        .anim-fly-away { animation: fly-away 1.5s forwards ease-in !important; }
+        @keyframes fly-away { 0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translate(150px, -300px) rotate(120deg) scale(0); opacity: 0; } }
+        .anim-spin { animation: spin 2s infinite linear !important; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 25% { transform: rotate(-15deg); } 75% { transform: rotate(15deg); } 100% { transform: rotate(0deg); } }
+        .anim-shake { animation: shake 1s infinite ease-in-out !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px) rotate(-5deg); } 75% { transform: translateX(10px) rotate(5deg); } }
+        .anim-bounce { animation: bounce 0.8s infinite ease-in-out !important; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .anim-stretch { animation: stretch 1.5s infinite ease-in-out !important; }
+        @keyframes stretch { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(0.9, 1.1) translateY(-10px); } }
+        .effect-text { position: absolute; font-weight: 900; top: 50%; left: 50%; transform: translateX(-50%); z-index: 300; width: 200px; text-align: center; font-size: 18px; color: #000; text-shadow: 2px 2px 0 #fff; }
+        @keyframes float-up { 0% { opacity: 1; margin-top: 0; } 100% { opacity: 0; margin-top: -80px; } }
+
+        /* === 自定义确认弹窗 === */
+        #custom-confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+            pointer-events: auto;
+        }
+
+        #custom-confirm-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #custom-confirm-box {
+            background: #fff;
+            border: 3px solid #000;
+            border-radius: 20px;
+            padding: 25px 20px;
+            width: 240px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes modal-pop {
+            0% { transform: scale(0.5); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #custom-confirm-icon {
+            font-size: 80px;
+            margin-bottom: 15px;
+            animation: leopard-wiggle 0.6s ease-in-out infinite;
+        }
+
+        @keyframes leopard-wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-12deg); }
+            75% { transform: rotate(12deg); }
+        }
+
+        #custom-confirm-message {
+            font-size: 16px;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .confirm-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .confirm-btn {
+            flex: 1;
+            padding: 8px 14px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .confirm-btn.yes {
+            background: #000;
+            color: #fff;
+        }
+
+        .confirm-btn.yes:hover {
+            background: #333;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .confirm-btn.no {
+            background: #f5f5f5;
+            color: #000;
+        }
+
+        .confirm-btn.no:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .confirm-btn:active {
+            transform: translateY(0);
+        }
+
+        /* === 通用模态框样式 === */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000;
+            pointer-events: auto;
+        }
+
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-box {
+            background: #fff;
+            border: 3px solid #000;
+            border-radius: 20px;
+            padding: 20px;
+            width: 280px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal-box.large {
+            width: 400px;
+            max-height: 500px;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-icon {
+            font-size: 28px;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 900;
+            color: #000;
+            margin: 0;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-body.scrollable {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .setting-item {
+            margin-bottom: 15px;
+        }
+
+        .setting-item label {
+            display: block;
+            font-size: 14px;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 8px;
+        }
+
+        .setting-item input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        .setting-item input:focus {
+            outline: none;
+            border-color: #000;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .modal-btn.save {
+            background: #000;
+            color: #fff;
+        }
+
+        .modal-btn.save:hover {
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        .modal-btn.cancel {
+            background: #f5f5f5;
+            color: #000;
+        }
+
+        .modal-btn.cancel:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        /* 数据记录样式 */
+        .data-day {
+            margin-bottom: 20px;
+            border: 2px solid #f0f0f0;
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .data-day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .data-day-date {
+            font-size: 16px;
+            font-weight: 900;
+            color: #000;
+        }
+
+        .data-day-stats {
+            font-size: 14px;
+            font-weight: 700;
+            color: #666;
+        }
+
+        .data-session {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .data-session-time {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            min-width: 70px;
+        }
+
+        .data-session-activity {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 700;
+            color: #000;
+        }
+
+        .data-session-status {
+            font-size: 18px;
+        }
+
+        .data-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 14px;
+        }
+</style>
+</head>
+<body>
+    <div id="main-wrapper">
+        <div class="bubble-container">
+            <div class="bubble" id="banner">
+                <h3 id="action-title">准备</h3>
+                <p id="action-desc">...</p>
+                <div id="countdown-display">10</div>
+                <button id="finish-btn">💰 打卡进钱💰</button>
+            </div>
+        </div>
+
+        <div id="pet-visual-area">
+            <div class="leopard-visual" id="leopard">🐆</div>
+        </div>
+
+        <!-- 💎 黑边状态栏 -->
+        <div id="status-bar">
+            <!-- 右上角按钮 -->
+            <div class="corner-buttons">
+                <button class="corner-btn" id="btn-settings" title="设置">⚙️</button>
+                <button class="corner-btn" id="btn-data" title="数据">📊</button>
+                <button class="corner-btn" id="btn-quit" title="退出应用 (⌘Q)">✕</button>
+            </div>
+
+            <!-- 第一行：数据 -->
+            <div class="status-row-top">
+                <span id="work-timer" class="status-text">⏳ 10:00</span>
+                <div class="divider"></div>
+                <span class="status-text">今日 ¥<span id="money-count">0</span></span>
+            </div>
+            <!-- 第二行：按钮 -->
+            <div class="controls">
+                <button class="mini-btn" id="btn-speak" title="说句话">💬</button>
+                <button class="mini-btn" id="btn-pause" title="暂停/继续">❚❚</button>
+                <button class="mini-btn" id="btn-restart" title="重新开始">↻</button>
+                <button class="mini-btn" id="btn-confirm-checkin" title="确认打卡">✅</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自定义确认弹窗 -->
+    <div id="custom-confirm-modal">
+        <div id="custom-confirm-backdrop">
+            <div id="custom-confirm-box">
+                <div id="custom-confirm-icon">🐆</div>
+                <div id="custom-confirm-message">确定上一轮已经放松了嘛！</div>
+                <div class="confirm-buttons">
+                    <button class="confirm-btn no" id="confirm-no">取消</button>
+                    <button class="confirm-btn yes" id="confirm-yes">确认打卡💰</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-backdrop">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <span class="modal-icon">⚙️</span>
+                    <h3 class="modal-title">设置</h3>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-item">
+                        <label>工作时间（分钟）</label>
+                        <input type="number" id="input-work-time" min="1" max="120" value="10">
+                    </div>
+                    <div class="setting-item">
+                        <label>休息时间（秒）</label>
+                        <input type="number" id="input-rest-time" min="10" max="300" value="30">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn cancel" id="settings-cancel">取消</button>
+                    <button class="modal-btn save" id="settings-save">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据展示弹窗 -->
+    <div id="data-modal" class="modal">
+        <div class="modal-backdrop">
+            <div class="modal-box large">
+                <div class="modal-header">
+                    <span class="modal-icon">📊</span>
+                    <h3 class="modal-title">打卡记录</h3>
+                </div>
+                <div class="modal-body scrollable" id="data-content">
+                    <!-- 动态生成数据内容 -->
+                </div>
+                <div class="modal-footer">
+                    <button class="modal-btn cancel" id="data-close">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ipcRenderer = null;
+        try { if (window.require) { ipcRenderer = window.require('electron').ipcRenderer; } } catch (e) {}
+
+        // 从localStorage读取设置
+        function loadSettings() {
+            const saved = localStorage.getItem('petSettings');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // 保存设置到localStorage
+        function saveSettings(settings) {
+            localStorage.setItem('petSettings', JSON.stringify(settings));
+        }
+
+        // === 数据记录管理 ===
+        function loadHistory() {
+            const saved = localStorage.getItem('petHistory');
+            if (saved) {
+                try {
+                    return JSON.parse(saved);
+                } catch (e) {
+                    return [];
+                }
+            }
+            return [];
+        }
+
+        function saveHistory(history) {
+            localStorage.setItem('petHistory', JSON.stringify(history));
+        }
+
+        function recordSession(checkedIn, activity) {
+            const history = loadHistory();
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
+
+            // 查找今天的记录
+            let todayRecord = history.find(day => day.date === dateStr);
+            if (!todayRecord) {
+                todayRecord = { date: dateStr, sessions: [] };
+                history.push(todayRecord);
+            }
+
+            // 添加本次记录
+            todayRecord.sessions.push({
+                time: timeStr,
+                checkedIn: checkedIn,
+                activity: activity
+            });
+
+            saveHistory(history);
+        }
+
+        // 初始化CONFIG，优先使用保存的设置
+        const savedSettings = loadSettings();
+        const CONFIG = {
+            WORK_TIME_SECONDS: savedSettings?.workTimeMinutes ? savedSettings.workTimeMinutes * 60 : 10 * 60,
+            EXERCISE_TOTAL_SECONDS: savedSettings?.restTimeSeconds || 30,
+            URGENT_SECONDS: 10,
+            ROTATE_INTERVAL_MS: 5 * 60 * 1000,
+            POPUP_INTERVAL_MS: 3 * 60 * 1000
+        };
+
+        const randomPopups = ["还活着！", "在呼吸！", "想要大House", "当牛做马中！", "财从四面八方来！", "带薪摸鱼"];
+        const urgentTexts = [
+            "救救！救救脖子！😱",
+            "钱要飞走啦！💸",
+            "别做硬邦邦的石头！🗿",
+            "快动动！要生锈了！🤖",
+            "颈椎在尖叫啊！📢",
+            "不想变成驼背豹！🐆",
+            "动起来！钱在等你！💰",
+            "健康值 -1 -1 -1 📉"];
+        const clickEmojis = ["😻", "😽", "😺", "😸"]; 
+        
+        const celebrateAnims = ["anim-takeoff", "anim-takeoff", "anim-wiggle"];
+
+        const exerciseLibrary = [
+             // 🦒 颈部/头部
+            { t: "天鹅颈", d: "用鼻尖在空中写一个'8'字，寓意发发发", icon: "🦒", anim: "anim-spin" },
+            { t: "拒绝穷神", d: "缓慢左右转头，对穷神坚定地说不", icon: "🙅‍♂️", anim: "anim-shake" },
+            { t: "仰望金币", d: "抬头看天花板，想象上面掉金币", icon: "🙄", anim: "anim-bounce" },
+            { t: "侧耳听钱", d: "左耳找左肩，右耳找右肩，听听钱的声音", icon: "👂", anim: "anim-shake" },
+            { t: "缩头乌龟", d: "保持下巴水平向后缩，挤出双下巴", icon: "🐢", anim: "anim-breathe" },
+            { t: "头顶顶金", d: "头顶用力向上顶，像顶着一叠钞票", icon: "🆙", anim: "anim-stretch" },
+            { t: "左右寻宝", d: "头向左转到底，再向右转到底", icon: "👀", anim: "anim-shake" },
+            { t: "放松大脑", d: "用手指轻轻敲打头皮，像下金币雨", icon: "💆‍♂️", anim: "anim-breathe" },
+
+            // 🦅 肩背/上肢
+            { t: "耸肩藏金", d: "用力耸肩找耳朵，夹住金币不掉下来", icon: "🤷‍♂️", anim: "anim-bounce" },
+            { t: "摘金苹果", d: "左手右手轮流向上用力抓取！高处有钱！", icon: "🙋‍♂️", anim: "anim-stretch" },
+            { t: "扩胸纳财", d: "双手向后打开，像要抱住一座金山", icon: "🤗", anim: "anim-breathe" },
+            { t: "背部拱桥", d: "双手抱胸，背部向后拱起，拉伸脊柱", icon: "🦍", anim: "anim-breathe" },
+            { t: "W型招财", d: "手臂摆成W型，向后夹紧肩胛骨", icon: "🔱", anim: "anim-stretch" },
+            { t: "大鹏展翅", d: "双臂水平伸直，画小圆圈", icon: "🦅", anim: "anim-spin" },
+            { t: "背后握手", d: "双手在背后交握，挺起胸膛", icon: "🤝", anim: "anim-stretch" },
+            { t: "直臂下压", d: "双臂向下伸直用力按压，把浮躁按下去", icon: "👇", anim: "anim-bounce" },
+
+            // 👐 手部/手腕
+            { t: "招财猫手", d: "手腕用力向外推，把压力统统推走", icon: "👐", anim: "anim-shake" },
+            { t: "数钱抽筋", d: "快速活动每一根手指，模拟点钞机", icon: "🎹", anim: "anim-shake" },
+            { t: "甩掉晦气", d: "像刚洗完手一样用力甩手腕", icon: "👋", anim: "anim-shake" },
+            { t: "金刚铁拳", d: "用力握拳5秒，再用力张开炸裂", icon: "✊", anim: "anim-breathe" },
+            { t: "祈祷涨薪", d: "双手合十，互相对抗用力推", icon: "🙏", anim: "anim-breathe" },
+            { t: "手腕画圈", d: "握拳，手腕顺时针画圈，圈住财富", icon: "👊", anim: "anim-spin" },
+            { t: "压指拉伸", d: "一只手把另一只手的手指手腕向后掰", icon: "🖐️", anim: "anim-stretch" },
+            { t: "弹指神功", d: "用力弹出每一根手指，击碎贫穷", icon: "👌", anim: "anim-bounce" },
+
+            // 💃 腰腹/核心
+            { t: "捡钱弯腰", d: "坐着向前弯腰，指尖碰脚尖", icon: "🙇", anim: "anim-bounce" },
+            { t: "转运呼啦圈", d: "想象腰上有个呼啦圈，慢慢转动", icon: "🎡", anim: "anim-spin" },
+            { t: "左右逢源", d: "保持坐姿，上半身向左转再向右转", icon: "🥨", anim: "anim-shake" },
+            { t: "侧身拿钱", d: "一只手向上举，身体向另一侧弯曲", icon: "🎋", anim: "anim-shake" },
+            { t: "收腹藏钱", d: "用力收紧肚子，坚持10秒，别让钱掉出来", icon: "🤐", anim: "anim-breathe" },
+            { t: "提膝撞金", d: "坐姿提膝，用膝盖去碰手肘", icon: "🦵", anim: "anim-bounce" },
+            { t: "坐姿伸展", d: "双手交叉向上推，把腰拔长", icon: "🧘", anim: "anim-stretch" },
+
+            // 🍑 臀部/髋部
+            { t: "夹紧钱包", d: "用力收紧臀部肌肉，夹紧！别松气！", icon: "🍑", anim: "anim-breathe" },
+            { t: "二郎腿克星", d: "脚踝放在膝盖上，身体前倾压一压", icon: "4️⃣", anim: "anim-stretch" },
+            { t: "拍打放松", d: "用空心拳轻轻拍打臀部侧面", icon: "👋", anim: "anim-shake" },
+            { t: "单腿抬起", d: "坐着把一条腿伸直抬起，感受大腿发力", icon: "📐", anim: "anim-stretch" },
+            { t: "髋部画圈", d: "站起来，用胯部画一个大大的圆", icon: "⭕", anim: "anim-spin" },
+            { t: "后踢腿", d: "站立向后踢腿，把霉运踢走", icon: "🐎", anim: "anim-shake" },
+
+            // 🦶 腿部/脚部
+            { t: "步步高升", d: "原地踏步，膝盖抬高！", icon: "🏃", anim: "anim-bounce" },
+            { t: "勾脚提钱", d: "脚尖用力向回勾，拉伸小腿", icon: "🩰", anim: "anim-stretch" },
+            { t: "踮脚望远", d: "脚跟抬起，脚尖着地，看看远处的钱", icon: "🕴️", anim: "anim-stretch" },
+            { t: "脚踝画圈", d: "转动脚踝，顺时针三圈，逆时针三圈", icon: "🦶", anim: "anim-spin" },
+            { t: "脚趾抓地", d: "像用脚趾抓地上的硬币一样用力", icon: "🦅", anim: "anim-breathe" },
+            { t: "隐形跑步", d: "在桌子底下快速交替跺脚", icon: "🐾", anim: "anim-shake" },
+            { t: "小腿按摩", d: "用脚跟去蹭另一条腿的小腿肚", icon: "🦵", anim: "anim-shake" },
+
+            // 👀 眼睛/面部
+            { t: "股市大盘", d: "眼球上下看，模拟看K线图走势", icon: "👀", anim: "anim-bounce" },
+            { t: "寻找商机", d: "顺时针转动眼球两圈，不放过任何机会", icon: "🧐", anim: "anim-spin" },
+            { t: "确认眼神", d: "用力闭眼3秒，再用力睁开", icon: "😌", anim: "anim-breathe" },
+            { t: "远眺未来", d: "看向窗外最远的地方，放松睫状肌", icon: "🔭", anim: "anim-stretch" },
+            { t: "狮子开口", d: "张大嘴巴伸出舌头，放松面部肌肉", icon: "🦁", anim: "anim-stretch" },
+            { t: "鼓腮纳福", d: "像河豚一样鼓起腮帮子，憋气5秒", icon: "🐡", anim: "anim-breathe" },
+            { t: "眉开眼笑", d: "挑动眉毛，活动额头", icon: "🤨", anim: "anim-shake" }
+        ];
+
+        const state = {
+            isWorking: true, isExercising: false, isPaused: false, money: 0, lastRoundCheckedIn: false,
+            countdownTimer: null, workTimer: null, rotateTimer: null, popupTimer: null,
+            timeRemaining: CONFIG.WORK_TIME_SECONDS
+        };
+
+        const elements = {
+            wrapper: document.getElementById('main-wrapper'),
+            petArea: document.getElementById('pet-visual-area'),
+            leopard: document.getElementById('leopard'),
+            bubble: document.getElementById('banner'),
+            finishBtn: document.getElementById('finish-btn'),
+            actionTitle: document.getElementById('action-title'),
+            actionDesc: document.getElementById('action-desc'),
+            countdownDisplay: document.getElementById('countdown-display'),
+            moneyCount: document.getElementById('money-count'),
+            workTimerDisplay: document.getElementById('work-timer'),
+            btnPause: document.getElementById('btn-pause'),
+            btnRestart: document.getElementById('btn-restart'),
+            btnSpeak: document.getElementById('btn-speak'),
+            btnConfirmCheckin: document.getElementById('btn-confirm-checkin'),
+            confirmModal: document.getElementById('custom-confirm-modal'),
+            confirmYes: document.getElementById('confirm-yes'),
+            confirmNo: document.getElementById('confirm-no'),
+            // 新增元素
+            btnSettings: document.getElementById('btn-settings'),
+            btnData: document.getElementById('btn-data'),
+            btnQuit: document.getElementById('btn-quit'),
+            settingsModal: document.getElementById('settings-modal'),
+            dataModal: document.getElementById('data-modal'),
+            inputWorkTime: document.getElementById('input-work-time'),
+            inputRestTime: document.getElementById('input-rest-time'),
+            settingsSave: document.getElementById('settings-save'),
+            settingsCancel: document.getElementById('settings-cancel'),
+            dataContent: document.getElementById('data-content'),
+            dataClose: document.getElementById('data-close')
+        };
+
+        function init() {
+            updateTimerUI(state.timeRemaining);
+            startWorkLoop();
+            startAutoRotate();
+            startRandomPopup();
+            updateCheckinButtonState(); // Call on init
+            setTimeout(() => performRandomCelebration(), 800);
+        }
+
+        // Helper to update check-in button state
+        function updateCheckinButtonState() {
+            elements.btnConfirmCheckin.disabled = state.lastRoundCheckedIn;
+            elements.btnConfirmCheckin.style.opacity = state.lastRoundCheckedIn ? '0.5' : '1';
+            elements.btnConfirmCheckin.style.cursor = state.lastRoundCheckedIn ? 'not-allowed' : 'pointer';
+        }
+
+        // 🔥 动态控制窗口穿透
+        function setWindowClickThrough(enabled) {
+            if (ipcRenderer) {
+                ipcRenderer.send('set-click-through', enabled);
+            }
+        }
+
+        // 🔥 实时检测鼠标位置，判断是否在可交互区域
+        let lastClickThroughState = true;
+
+        document.addEventListener('mousemove', (e) => {
+            // 如果正在拖拽或弹窗打开，不穿透
+            if (isDragging ||
+                elements.confirmModal.style.display === 'block' ||
+                elements.settingsModal.style.display === 'block' ||
+                elements.dataModal.style.display === 'block') {
+                if (lastClickThroughState) {
+                    setWindowClickThrough(false);
+                    lastClickThroughState = false;
+                }
+                return;
+            }
+
+            // 获取鼠标位置下的元素
+            const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
+
+            // 检查是否在可交互区域（金钱豹、状态栏、气泡、弹窗、角落按钮）
+            const isInteractive = elementUnderMouse && (
+                elementUnderMouse.closest('#pet-visual-area') ||
+                elementUnderMouse.closest('#status-bar') ||
+                elementUnderMouse.closest('.bubble-container') ||
+                elementUnderMouse.closest('#custom-confirm-modal') ||
+                elementUnderMouse.closest('.modal') ||
+                elementUnderMouse.closest('.corner-buttons')
+            );
+
+            const shouldClickThrough = !isInteractive;
+
+            // 只在状态改变时发送消息
+            if (shouldClickThrough !== lastClickThroughState) {
+                setWindowClickThrough(shouldClickThrough);
+                lastClickThroughState = shouldClickThrough;
+            }
+        });
+
+        // 🔥 在点击和拖拽时也要确保窗口不穿透
+        document.addEventListener('mousedown', () => {
+            setWindowClickThrough(false);
+            lastClickThroughState = false;
+        });
+
+        // === 拖拽 ===
+        let isDragging = false;
+        let startX, startY;
+
+        // 只在宠物区域和状态栏支持拖拽
+        [elements.petArea, document.getElementById('status-bar')].forEach(dragArea => {
+            dragArea.addEventListener('mousedown', (e) => {
+                // Prevent dragging if clicking on interactive elements
+                if (e.target.closest('button') || e.target.closest('.mini-btn') || e.target.id === 'finish-btn') {
+                    return;
+                }
+                isDragging = true;
+                startX = e.screenX;
+                startY = e.screenY;
+                setWindowClickThrough(false); // Disable click-through while dragging
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging && ipcRenderer) {
+                const dx = e.screenX - startX;
+                const dy = e.screenY - startY;
+                ipcRenderer.send('window-move', { x: dx, y: dy });
+                startX = e.screenX;
+                startY = e.screenY;
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                // 拖拽结束后延迟一下再根据鼠标位置决定是否穿透
+                setTimeout(() => {
+                    const e = { clientX: 0, clientY: 0 };
+                    // 触发一次mousemove来更新穿透状态
+                }, 100);
+            }
+        });
+
+        // === ⚡️ 纯净说话功能 (修复：强制隐藏倒计时) ===
+        elements.btnSpeak.addEventListener('click', (e) => {
+            e.stopPropagation();
+            triggerSpeak();
+        });
+
+        // Event listener for the new check-in button
+        elements.btnConfirmCheckin.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (!state.lastRoundCheckedIn) {
+                showCustomConfirm();
+            }
+        });
+
+        // Custom confirm dialog
+        function showCustomConfirm() {
+            elements.confirmModal.style.display = 'block';
+            setWindowClickThrough(false); // Disable click-through when modal is open
+        }
+
+        function hideCustomConfirm() {
+            elements.confirmModal.style.display = 'none';
+            setWindowClickThrough(true); // Re-enable click-through
+        }
+
+        elements.confirmYes.addEventListener('click', () => {
+            addMoney(10);
+            state.lastRoundCheckedIn = true;
+
+            // 记录手动补打卡数据
+            const activity = state.currentExercise ? state.currentExercise.t : '手动确认打卡';
+            recordSession(true, activity);
+
+            triggerBigEmojiExplosion(); // Show some reward feedback
+            showEffect('+💰 打卡成功!');
+            updateCheckinButtonState(); // Update button state after check-in
+            hideCustomConfirm();
+        });
+
+        elements.confirmNo.addEventListener('click', () => {
+            hideCustomConfirm();
+        });
+
+        // Close modal when clicking backdrop
+        elements.confirmModal.addEventListener('click', (e) => {
+            if (e.target === elements.confirmModal || e.target.id === 'custom-confirm-backdrop') {
+                hideCustomConfirm();
+            }
+        });
+
+        // === 设置功能 ===
+        // 确保按钮区域永不穿透
+        elements.btnSettings.addEventListener('mouseenter', () => {
+            setWindowClickThrough(false);
+        });
+
+        elements.btnSettings.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setWindowClickThrough(false); // 强制禁用穿透
+            // 显示当前设置值
+            elements.inputWorkTime.value = Math.floor(CONFIG.WORK_TIME_SECONDS / 60);
+            elements.inputRestTime.value = CONFIG.EXERCISE_TOTAL_SECONDS;
+            elements.settingsModal.style.display = 'block';
+        });
+
+        elements.settingsSave.addEventListener('click', () => {
+            const workTimeMinutes = parseInt(elements.inputWorkTime.value);
+            const restTimeSeconds = parseInt(elements.inputRestTime.value);
+
+            if (workTimeMinutes > 0 && restTimeSeconds > 0) {
+                // 保存设置
+                saveSettings({
+                    workTimeMinutes: workTimeMinutes,
+                    restTimeSeconds: restTimeSeconds
+                });
+
+                // 更新CONFIG
+                CONFIG.WORK_TIME_SECONDS = workTimeMinutes * 60;
+                CONFIG.EXERCISE_TOTAL_SECONDS = restTimeSeconds;
+
+                // 关闭弹窗
+                elements.settingsModal.style.display = 'none';
+                setWindowClickThrough(true);
+
+                // 提示
+                showEffect('⚙️ 设置已保存');
+
+                // 重启当前周期
+                if (confirm('设置已保存！是否立即应用新设置？\n（将重启当前工作周期）')) {
+                    if(state.workTimer) clearInterval(state.workTimer);
+                    if(state.countdownTimer) clearInterval(state.countdownTimer);
+                    state.isPaused = false;
+                    elements.btnPause.innerText = "❚❚";
+                    state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+                    state.isExercising = false;
+                    resetVisuals();
+                    startWorkLoop();
+                }
+            }
+        });
+
+        elements.settingsCancel.addEventListener('click', () => {
+            elements.settingsModal.style.display = 'none';
+            setWindowClickThrough(true);
+        });
+
+        // 点击背景关闭
+        elements.settingsModal.addEventListener('click', (e) => {
+            if (e.target === elements.settingsModal || e.target.className === 'modal-backdrop') {
+                elements.settingsModal.style.display = 'none';
+                setWindowClickThrough(true);
+            }
+        });
+
+        // === 数据展示功能 ===
+        // 确保按钮区域永不穿透
+        elements.btnData.addEventListener('mouseenter', () => {
+            setWindowClickThrough(false);
+        });
+
+        elements.btnData.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setWindowClickThrough(false); // 强制禁用穿透
+            showDataModal();
+        });
+
+        function showDataModal() {
+            const history = loadHistory();
+            elements.dataContent.innerHTML = '';
+
+            if (history.length === 0) {
+                elements.dataContent.innerHTML = '<div class="data-empty">还没有打卡记录呢~<br>开始工作吧！💪</div>';
+            } else {
+                // 倒序显示（最新的在前）
+                const sortedHistory = [...history].reverse();
+                sortedHistory.forEach(day => {
+                    const checkedInCount = day.sessions.filter(s => s.checkedIn).length;
+                    const totalCount = day.sessions.length;
+                    const rate = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0;
+
+                    const dayDiv = document.createElement('div');
+                    dayDiv.className = 'data-day';
+                    dayDiv.innerHTML = `
+                        <div class="data-day-header">
+                            <div class="data-day-date">${formatDate(day.date)}</div>
+                            <div class="data-day-stats">${checkedInCount}/${totalCount} (${rate}%)</div>
+                        </div>
+                        ${day.sessions.map(session => `
+                            <div class="data-session">
+                                <div class="data-session-time">${session.time.substring(0, 5)}</div>
+                                <div class="data-session-activity">${session.activity}</div>
+                                <div class="data-session-status">${session.checkedIn ? '✅' : '❌'}</div>
+                            </div>
+                        `).join('')}
+                    `;
+                    elements.dataContent.appendChild(dayDiv);
+                });
+            }
+
+            elements.dataModal.style.display = 'block';
+            setWindowClickThrough(false);
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const dateOnly = dateStr.split('T')[0];
+            const todayStr = today.toISOString().split('T')[0];
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (dateOnly === todayStr) {
+                return '今天';
+            } else if (dateOnly === yesterdayStr) {
+                return '昨天';
+            } else {
+                return dateStr;
+            }
+        }
+
+        elements.dataClose.addEventListener('click', () => {
+            elements.dataModal.style.display = 'none';
+            setWindowClickThrough(true);
+        });
+
+        elements.dataModal.addEventListener('click', (e) => {
+            if (e.target === elements.dataModal || e.target.className === 'modal-backdrop') {
+                elements.dataModal.style.display = 'none';
+                setWindowClickThrough(true);
+            }
+        });
+
+        // === 退出应用功能 ===
+        elements.btnQuit.addEventListener('mouseenter', () => {
+            setWindowClickThrough(false);
+        });
+
+        elements.btnQuit.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (confirm('确定要退出金钱豹吗？💰')) {
+                if (ipcRenderer) {
+                    ipcRenderer.send('quit-app');
+                }
+            }
+        });
+
+        // 快捷键支持 (Command+Q 或 Ctrl+Q)
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'q') {
+                e.preventDefault();
+                if (confirm('确定要退出金钱豹吗？💰')) {
+                    if (ipcRenderer) {
+                        ipcRenderer.send('quit-app');
+                    }
+                }
+            }
+        });
+
+        function triggerSpeak() {
+            const text = randomPopups[Math.floor(Math.random() * randomPopups.length)];
+            
+            // 1. 设置文字
+            elements.actionTitle.innerText = text;
+            
+            // 2. 强制隐藏其他元素，确保气泡纯净
+            elements.actionDesc.style.display = 'none';
+            elements.countdownDisplay.style.display = 'none';
+            elements.finishBtn.style.display = 'none';
+            
+            // 3. 显示
+            elements.bubble.style.display = 'block';
+            elements.leopard.style.transform = "scale(1.1)";
+            setTimeout(() => elements.leopard.style.transform = "scale(1)", 150);
+
+            // 4. 3秒后隐藏
+            setTimeout(() => {
+                // 只有在工作模式下才自动隐藏，避免把运动时的指导给隐藏了
+                if (state.isWorking) elements.bubble.style.display = 'none';
+            }, 3000);
+        }
+
+        elements.petArea.addEventListener('click', (e) => {
+            if (state.isWorking && !state.isPaused && !state.isExercising) {
+                const randomCat = clickEmojis[Math.floor(Math.random() * clickEmojis.length)];
+                elements.leopard.innerText = randomCat;
+                elements.leopard.classList.add('anim-rub');
+                createHeart(e.clientX, e.clientY);
+                createHeart(e.clientX + 20, e.clientY - 20);
+                setTimeout(() => {
+                    elements.leopard.innerText = "🐆";
+                    elements.leopard.classList.remove('anim-rub');
+                }, 800);
+            }
+        });
+
+        function createHeart(x, y) {
+            const heart = document.createElement('div');
+            heart.innerText = "❤️";
+            heart.className = 'heart-emoji';
+            heart.style.left = (x - 10) + 'px';
+            heart.style.top = (y - 20) + 'px';
+            const randomX = (Math.random() - 0.5) * 40;
+            heart.style.transform = `translateX(${randomX}px)`;
+            document.body.appendChild(heart);
+            setTimeout(() => heart.remove(), 1000);
+        }
+
+        // === 随机庆祝 ===
+        function startAutoRotate() {
+            if (state.rotateTimer) clearInterval(state.rotateTimer);
+            state.rotateTimer = setInterval(() => {
+                if (state.isWorking && !state.isPaused && !state.isExercising) {
+                    performRandomCelebration();
+                }
+            }, CONFIG.ROTATE_INTERVAL_MS);
+        }
+
+        function performRandomCelebration() {
+            const type = Math.floor(Math.random() * 3);
+            // 这里不说话，直接动，或者只说简单一句
+            triggerSpeak(); 
+
+            if (type === 0) {
+                const anim = Math.random() > 0.5 ? 'anim-takeoff' : 'anim-wiggle';
+                elements.leopard.classList.add(anim);
+                setTimeout(() => elements.leopard.classList.remove(anim), 2000); 
+            } else if (type === 1) {
+                triggerBigEmojiExplosion(["💰", "💸"]);
+            } else {
+                triggerBigEmojiExplosion(["❤️", "💖", "✨"]);
+            }
+        }
+
+        // === 循环逻辑 ===
+        function startRandomPopup() {
+            if (state.popupTimer) clearInterval(state.popupTimer);
+            state.popupTimer = setInterval(() => {
+                if (state.isWorking && !state.isPaused && !state.isExercising) {
+                   triggerSpeak();
+                }
+            }, CONFIG.POPUP_INTERVAL_MS); 
+        }
+
+        function startWorkLoop() {
+            state.isWorking = true;
+            // 不在这里重置打卡状态，让它保持到下次休息时间
+            updateCheckinButtonState(); // Update button state
+            resetVisuals();
+            if(state.workTimer) clearInterval(state.workTimer);
+            state.workTimer = setInterval(() => {
+                if (state.isPaused) return;
+                state.timeRemaining--;
+                updateTimerUI(state.timeRemaining);
+                if (state.timeRemaining <= 0) {
+                    clearInterval(state.workTimer);
+                    startExercise();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            if (state.isWorking) {
+                elements.workTimerDisplay.innerText = `⏳ ${m}:${s}`;
+                elements.workTimerDisplay.classList.remove('resting');
+            } else {
+                elements.workTimerDisplay.innerText = `🧘 ${m}:${s}`;
+                elements.workTimerDisplay.classList.add('resting');
+            }
+        }
+
+        function startExercise() {
+            state.isWorking = false;
+            state.isExercising = true;
+            state.timeRemaining = CONFIG.EXERCISE_TOTAL_SECONDS;
+
+            // 🔥 新一轮休息开始，重置打卡状态
+            state.lastRoundCheckedIn = false;
+            updateCheckinButtonState();
+
+            updateTimerUI(state.timeRemaining);
+
+            if(state.workTimer) clearInterval(state.workTimer);
+            state.workTimer = setInterval(() => {
+                if (state.isPaused) return;
+                state.timeRemaining--;
+                updateTimerUI(state.timeRemaining);
+            }, 1000);
+
+            const action = exerciseLibrary[Math.floor(Math.random() * exerciseLibrary.length)];
+            state.currentExercise = action; // Store current exercise
+            elements.actionTitle.innerText = action.t;
+            elements.actionDesc.innerText = action.d;
+            
+            // ⚡️ 运动时显示描述
+            elements.actionDesc.style.display = 'block';
+            elements.countdownDisplay.style.display = 'none';
+            elements.finishBtn.style.display = 'none';
+            
+            elements.leopard.innerText = action.icon;
+            elements.leopard.className = "leopard-visual"; 
+            void elements.leopard.offsetWidth; 
+            elements.leopard.classList.add(action.anim);
+
+            elements.bubble.style.display = 'block';
+
+            const delay = Math.max(0, (CONFIG.EXERCISE_TOTAL_SECONDS - CONFIG.URGENT_SECONDS) * 1000);
+            setTimeout(() => { startCountdownSequence(); }, delay);
+        }
+
+        function startCountdownSequence() {
+            if (!state.isExercising) return;
+            const currentTitle = state.currentExercise ? state.currentExercise.t : urgentTexts[0];
+            const currentDesc = state.currentExercise ? state.currentExercise.d : "";
+            elements.wrapper.classList.add('urgent-mode');
+            elements.actionTitle.innerText = currentTitle; // Display exercise title
+            elements.actionDesc.innerText = currentDesc; // Display exercise description
+            elements.actionDesc.style.display = 'block'; 
+            elements.finishBtn.style.display = 'block'; 
+            elements.countdownDisplay.style.display = 'block';
+            
+            let secondsLeft = CONFIG.URGENT_SECONDS;
+            elements.countdownDisplay.innerText = secondsLeft;
+            
+            if(state.countdownTimer) clearInterval(state.countdownTimer);
+            state.countdownTimer = setInterval(() => {
+                if (state.isPaused) return;
+                secondsLeft--;
+                elements.countdownDisplay.innerText = secondsLeft;
+                if (secondsLeft <= 0) handleTimeout();
+            }, 1000);
+        }
+
+        function handleTimeout() {
+            clearInterval(state.countdownTimer);
+            clearInterval(state.workTimer);
+
+            // 记录数据：未打卡
+            const activity = state.currentExercise ? state.currentExercise.t : '休息';
+            recordSession(false, activity);
+
+            elements.leopard.innerText = "💸";
+            elements.leopard.className = "leopard-visual anim-fly-away";
+            elements.actionTitle.innerText = "飞走了...";
+            elements.finishBtn.style.display = 'none';
+            elements.countdownDisplay.style.display = 'none';
+            showEffect("本钱 -1");
+            state.lastRoundCheckedIn = false; // Reset for next work round
+            updateCheckinButtonState(); // Update button state
+            setTimeout(() => {
+                state.isExercising = false;
+                state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+                startWorkLoop();
+            }, 1600);
+        }
+
+        elements.finishBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.countdownTimer) clearInterval(state.countdownTimer);
+            clearInterval(state.workTimer);
+
+            // 立即隐藏倒计时和按钮
+            elements.countdownDisplay.style.display = 'none';
+            elements.finishBtn.style.display = 'none';
+            elements.wrapper.classList.remove('urgent-mode');
+
+            completeAndReward();
+        });
+
+        function completeAndReward() {
+            state.isExercising = false;
+
+            // 立即隐藏气泡和倒计时
+            elements.bubble.style.display = 'none';
+            elements.wrapper.classList.remove('urgent-mode');
+
+            // 记录数据：已打卡
+            const activity = state.currentExercise ? state.currentExercise.t : '休息';
+            recordSession(true, activity);
+
+            elements.leopard.innerText = "🤑";
+            elements.leopard.className = "leopard-visual";
+            elements.leopard.style.animation = "idle-bounce 0.3s infinite";
+            addMoney(10);
+            triggerBigEmojiExplosion();
+            state.lastRoundCheckedIn = true; // 打卡后设置为已打卡
+            updateCheckinButtonState(); // 更新按钮状态
+            setTimeout(() => {
+                state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+                startWorkLoop();
+            }, 2000);
+        }
+
+        function triggerBigEmojiExplosion(customEmojis) {
+            const emojis = customEmojis || ["💰", "🤑", "💎", "🎉", "💸", "🧧"];
+            for (let i = 0; i < 20; i++) {
+                const el = document.createElement('div');
+                el.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+                el.className = 'reward-emoji';
+                const angle = Math.random() * Math.PI * 2;
+                const distance = 120 + Math.random() * 150; 
+                el.style.setProperty('--tx', Math.cos(angle) * distance + 'px');
+                el.style.setProperty('--ty', Math.sin(angle) * distance + 'px');
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 1200);
+            }
+        }
+
+        function resetVisuals() {
+            elements.wrapper.classList.remove('urgent-mode');
+            elements.bubble.style.display = 'none';
+            elements.leopard.innerText = "🐆";
+            elements.leopard.className = "leopard-visual"; 
+            elements.leopard.style.animation = "idle-bounce 2.5s infinite ease-in-out"; 
+        }
+
+        function addMoney(amount) {
+            state.money += amount;
+            elements.moneyCount.innerText = state.money;
+            showEffect("");
+        }
+
+        function showEffect(text) {
+            const effect = document.createElement('div');
+            effect.className = 'effect-text';
+            effect.innerText = text;
+            elements.wrapper.appendChild(effect);
+            setTimeout(() => effect.remove(), 1500);
+        }
+
+        elements.btnPause.addEventListener('click', () => {
+            state.isPaused = !state.isPaused;
+            elements.btnPause.innerText = state.isPaused ? "▶" : "❚❚";
+        });
+        
+        elements.btnRestart.addEventListener('click', () => {
+            if(state.workTimer) clearInterval(state.workTimer);
+            if(state.countdownTimer) clearInterval(state.countdownTimer);
+            state.isPaused = false;
+            elements.btnPause.innerText = "❚❚";
+            state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+            state.isExercising = false;
+            state.lastRoundCheckedIn = false; // Reset for new work round
+            updateCheckinButtonState(); // Update button state
+            resetVisuals();
+            startWorkLoop();
+            performRandomCelebration();
+        });
+
+        init();
+    </script>
+</body>
+</html>

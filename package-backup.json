@@ -1,0 +1,16 @@
+{
+  "name": "money-leopard-pet",
+  "version": "1.0.0",
+  "description": "一只帮你进钱的桌面金钱豹",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --mac --dir"
+  },
+  "author": "YourName",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

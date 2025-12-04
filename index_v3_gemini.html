@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>金钱豹 Stickies 版</title>
+    <style>
+        /* === 全局环境 === */
+        body {
+            background-color: transparent;
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', 'Arial', sans-serif;
+            user-select: none;
+            /* 适配小窗口尺寸 */
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* === 主容器 === */
+        #main-wrapper {
+            position: relative; /* 不再是 absolute，因为窗口本身在动 */
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            
+            /* 🔥 核心：开启原生窗口拖拽 🔥 */
+            -webkit-app-region: drag;
+            cursor: grab;
+        }
+
+        /* === 视觉区域 === */
+        #pet-visual-area {
+            /* 稍微留点空间给动画 */
+            margin-top: 20px; 
+            width: 160px;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .leopard-visual {
+            font-size: 90px;
+            filter: drop-shadow(0px 4px 2px rgba(0,0,0,0.2));
+            pointer-events: none;
+            animation: idle-bounce 2s infinite ease-in-out;
+            transition: transform 0.3s;
+        }
+        
+        .facing-left { transform: scaleX(-1); }
+
+        /* === 极简黑白状态栏 === */
+        #status-bar {
+            background: #ffffff;
+            border: 2px solid #000000;
+            border-radius: 20px;
+            padding: 4px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 2px 2px 0px rgba(0,0,0,1);
+            
+            /* 关键：状态栏内部需要交互，所以要关闭拖拽 */
+            -webkit-app-region: no-drag; 
+        }
+
+        .status-text { font-size: 13px; font-weight: bold; font-family: monospace; color: #000; }
+        .divider { color: #ccc; margin: 0 2px; }
+
+        /* 按钮组 */
+        .controls { display: flex; gap: 4px; border-left: 1px solid #eee; padding-left: 6px; }
+        .mini-btn {
+            background: none; border: none; cursor: pointer; font-size: 14px; padding: 0 3px;
+            color: #999; transition: all 0.2s;
+        }
+        .mini-btn:hover { color: #000; }
+
+        /* === 气泡提示 === */
+        .bubble {
+            position: absolute;
+            top: 0px; /* 显示在最上方 */
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff; border: 2px solid #000; padding: 8px;
+            border-radius: 12px; width: 160px; display: none;
+            box-shadow: 2px 2px 0 #000; text-align: center; z-index: 110;
+        }
+        .bubble h3 { margin: 0 0 4px 0; font-size: 14px; color: #000; }
+        .bubble p { margin: 0; font-size: 12px; color: #333; }
+
+        /* 紧张模式 */
+        .urgent-mode .bubble { border-bottom: 4px solid #000; }
+        #countdown-display { font-size: 24px; font-weight: 900; color: #000; display: none; margin: 2px 0; }
+        #finish-btn {
+            background: #000; color: #fff; border: none; padding: 4px 12px; border-radius: 12px;
+            cursor: pointer; font-weight: bold; display: none; margin: 4px auto 0; font-size: 12px;
+            -webkit-app-region: no-drag; /* 按钮必须可点 */
+        }
+
+        /* 动画库 */
+        @keyframes idle-bounce { 0%, 100% { transform: scale(1, 1) translateY(0); } 50% { transform: scale(1.05, 0.95) translateY(6px); } }
+        .anim-fly-away { animation: fly-away 1.5s forwards ease-in !important; }
+        @keyframes fly-away { 0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translate(150px, -300px) rotate(120deg) scale(0); opacity: 0; } }
+        /* 复用之前的动画... */
+        .anim-spin { animation: spin 2s infinite linear !important; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 25% { transform: rotate(-15deg); } 75% { transform: rotate(15deg); } 100% { transform: rotate(0deg); } }
+        .anim-shake { animation: shake 1s infinite ease-in-out !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px) rotate(-5deg); } 75% { transform: translateX(10px) rotate(5deg); } }
+        .anim-bounce { animation: bounce 0.8s infinite ease-in-out !important; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .anim-stretch { animation: stretch 1.5s infinite ease-in-out !important; }
+        @keyframes stretch { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(0.9, 1.1) translateY(-10px); } }
+        .effect-text {
+            position: absolute; font-weight: 900; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 300; width: 200px; text-align: center; font-size: 16px; color: #000; text-shadow: 1px 1px 0 #fff;
+        }
+        @keyframes float-up { 0% { opacity: 1; top: 10px; } 100% { opacity: 0; top: -50px; } }
+    </style>
+</head>
+<body>
+
+    <div id="main-wrapper">
+        <!-- 气泡 -->
+        <div class="bubble" id="banner">
+            <h3 id="action-title">准备</h3>
+            <p id="action-desc">...</p>
+            <div id="countdown-display">10</div>
+            <button id="finish-btn">打卡进钱</button>
+        </div>
+
+        <!-- 视觉 -->
+        <div id="pet-visual-area">
+            <div class="leopard-visual" id="leopard">🐆</div>
+        </div>
+
+        <!-- 状态栏 -->
+        <div id="status-bar">
+            <span id="work-timer" class="status-text">10:00</span>
+            <span class="divider">|</span>
+            <span class="status-text">¥<span id="money-count">0</span></span>
+            <div class="controls">
+                <!-- 定位按钮：现在通过 IPC 发送消息 -->
+                <button class="mini-btn" id="btn-reset-pos" title="定位归位">⌖</button>
+                <button class="mini-btn" id="btn-pause" title="暂停/继续">❚❚</button>
+                <button class="mini-btn" id="btn-restart" title="重置">↻</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron'); // 直接引入 IPC
+
+        // === 配置 ===
+        const CONFIG = {
+            WORK_TIME_SECONDS: 10 * 60,      
+            EXERCISE_TOTAL_SECONDS: 1 * 30,  
+            URGENT_SECONDS: 10               
+        };
+
+        const exerciseLibrary = [
+             // 🦒 颈部/头部
+            { t: "天鹅颈", d: "用鼻尖在空中写一个'8'字，寓意发发发", icon: "🦒", anim: "anim-spin" },
+            { t: "拒绝穷神", d: "缓慢左右转头，对穷神坚定地说不", icon: "🙅‍♂️", anim: "anim-shake" },
+            { t: "仰望金币", d: "抬头看天花板，想象上面掉金币", icon: "🙄", anim: "anim-bounce" },
+            { t: "侧耳听钱", d: "左耳找左肩，右耳找右肩，听听钱的声音", icon: "👂", anim: "anim-shake" },
+            { t: "缩头乌龟", d: "保持下巴水平向后缩，挤出双下巴", icon: "🐢", anim: "anim-breathe" },
+            { t: "头顶顶金", d: "头顶用力向上顶，像顶着一叠钞票", icon: "🆙", anim: "anim-stretch" },
+            { t: "左右寻宝", d: "头向左转到底，再向右转到底", icon: "👀", anim: "anim-shake" },
+            { t: "放松大脑", d: "用手指轻轻敲打头皮，像下金币雨", icon: "💆‍♂️", anim: "anim-breathe" },
+
+            // 🦅 肩背/上肢
+            { t: "耸肩藏金", d: "用力耸肩找耳朵，夹住金币不掉下来", icon: "🤷‍♂️", anim: "anim-bounce" },
+            { t: "摘金苹果", d: "左手右手轮流向上用力抓取！高处有钱！", icon: "🙋‍♂️", anim: "anim-stretch" },
+            { t: "扩胸纳财", d: "双手向后打开，像要抱住一座金山", icon: "🤗", anim: "anim-breathe" },
+            { t: "背部拱桥", d: "双手抱胸，背部向后拱起，拉伸脊柱", icon: "🦍", anim: "anim-breathe" },
+            { t: "W型招财", d: "手臂摆成W型，向后夹紧肩胛骨", icon: "🔱", anim: "anim-stretch" },
+            { t: "大鹏展翅", d: "双臂水平伸直，画小圆圈", icon: "🦅", anim: "anim-spin" },
+            { t: "背后握手", d: "双手在背后交握，挺起胸膛", icon: "🤝", anim: "anim-stretch" },
+            { t: "直臂下压", d: "双臂向下伸直用力按压，把浮躁按下去", icon: "👇", anim: "anim-bounce" },
+
+            // 👐 手部/手腕
+            { t: "招财猫手", d: "手腕用力向外推，把压力统统推走", icon: "👐", anim: "anim-shake" },
+            { t: "数钱抽筋", d: "快速活动每一根手指，模拟点钞机", icon: "🎹", anim: "anim-shake" },
+            { t: "甩掉晦气", d: "像刚洗完手一样用力甩手腕", icon: "👋", anim: "anim-shake" },
+            { t: "金刚铁拳", d: "用力握拳5秒，再用力张开炸裂", icon: "✊", anim: "anim-breathe" },
+            { t: "祈祷涨薪", d: "双手合十，互相对抗用力推", icon: "🙏", anim: "anim-breathe" },
+            { t: "手腕画圈", d: "握拳，手腕顺时针画圈，圈住财富", icon: "👊", anim: "anim-spin" },
+            { t: "压指拉伸", d: "一只手把另一只手的手指手腕向后掰", icon: "🖐️", anim: "anim-stretch" },
+            { t: "弹指神功", d: "用力弹出每一根手指，击碎贫穷", icon: "👌", anim: "anim-bounce" },
+
+            // 💃 腰腹/核心
+            { t: "捡钱弯腰", d: "坐着向前弯腰，指尖碰脚尖", icon: "🙇", anim: "anim-bounce" },
+            { t: "转运呼啦圈", d: "想象腰上有个呼啦圈，慢慢转动", icon: "🎡", anim: "anim-spin" },
+            { t: "左右逢源", d: "保持坐姿，上半身向左转再向右转", icon: "🥨", anim: "anim-shake" },
+            { t: "侧身拿钱", d: "一只手向上举，身体向另一侧弯曲", icon: "🎋", anim: "anim-shake" },
+            { t: "收腹藏钱", d: "用力收紧肚子，坚持10秒，别让钱掉出来", icon: "🤐", anim: "anim-breathe" },
+            { t: "提膝撞金", d: "坐姿提膝，用膝盖去碰手肘", icon: "🦵", anim: "anim-bounce" },
+            { t: "坐姿伸展", d: "双手交叉向上推，把腰拔长", icon: "🧘", anim: "anim-stretch" },
+
+            // 🍑 臀部/髋部
+            { t: "夹紧钱包", d: "用力收紧臀部肌肉，夹紧！别松气！", icon: "🍑", anim: "anim-breathe" },
+            { t: "二郎腿克星", d: "脚踝放在膝盖上，身体前倾压一压", icon: "4️⃣", anim: "anim-stretch" },
+            { t: "坐拥金山", d: "离开椅子1厘米，保持深蹲姿势", icon: "🪑", anim: "anim-bounce" },
+            { t: "拍打放松", d: "用空心拳轻轻拍打臀部侧面", icon: "👋", anim: "anim-shake" },
+            { t: "单腿抬起", d: "坐着把一条腿伸直抬起，感受大腿发力", icon: "📐", anim: "anim-stretch" },
+            { t: "髋部画圈", d: "站起来，用胯部画一个大大的圆", icon: "⭕", anim: "anim-spin" },
+            { t: "后踢腿", d: "站立向后踢腿，把霉运踢走", icon: "🐎", anim: "anim-shake" },
+
+            // 🦶 腿部/脚部
+            { t: "步步高升", d: "原地踏步，膝盖抬高！", icon: "🏃", anim: "anim-bounce" },
+            { t: "勾脚数钱", d: "脚尖用力向回勾，拉伸小腿", icon: "🩰", anim: "anim-stretch" },
+            { t: "踮脚望远", d: "脚跟抬起，脚尖着地，看看远处的钱", icon: "🕴️", anim: "anim-stretch" },
+            { t: "脚踝画圈", d: "转动脚踝，顺时针三圈，逆时针三圈", icon: "🦶", anim: "anim-spin" },
+            { t: "脚趾抓地", d: "像用脚趾抓地上的硬币一样用力", icon: "🦅", anim: "anim-breathe" },
+            { t: "隐形跑步", d: "在桌子底下快速交替跺脚", icon: "🐾", anim: "anim-shake" },
+            { t: "小腿按摩", d: "用脚跟去蹭另一条腿的小腿肚", icon: "🦵", anim: "anim-shake" },
+
+            // 👀 眼睛/面部
+            { t: "股市大盘", d: "眼球上下看，模拟看K线图走势", icon: "👀", anim: "anim-bounce" },
+            { t: "寻找商机", d: "顺时针转动眼球两圈，不放过任何机会", icon: "🧐", anim: "anim-spin" },
+            { t: "确认眼神", d: "用力闭眼3秒，再用力睁开", icon: "😌", anim: "anim-breathe" },
+            { t: "远眺未来", d: "看向窗外最远的地方，放松睫状肌", icon: "🔭", anim: "anim-stretch" },
+            { t: "狮子开口", d: "张大嘴巴伸出舌头，放松面部肌肉", icon: "🦁", anim: "anim-stretch" },
+            { t: "鼓腮纳福", d: "像河豚一样鼓起腮帮子，憋气5秒", icon: "🐡", anim: "anim-breathe" },
+            { t: "眉开眼笑", d: "挑动眉毛，活动额头", icon: "🤨", anim: "anim-shake" }
+        ];
+        
+        const urgentTexts = [
+            "救救！救救脖子！😱",
+            "钱要飞走啦！💸",
+            "别做硬邦邦的石头！🗿",
+            "身体本钱要没啦！📉",
+            "快动动！要生锈了！🤖",
+            "为了养老金！冲啊！👵",
+            "颈椎在尖叫啊！📢",
+            "不想变成驼背豹！🐆",
+            "动起来！钱在等你！💰",
+            "健康值 -1 -1 -1 📉"
+        ];
+
+        const state = {
+            isWorking: true, isExercising: false, isPaused: false, money: 0,
+            countdownTimer: null, workTimer: null, wanderTimer: null,
+            timeRemaining: CONFIG.WORK_TIME_SECONDS
+        };
+
+        const elements = {
+            wrapper: document.getElementById('main-wrapper'),
+            leopard: document.getElementById('leopard'),
+            bubble: document.getElementById('banner'),
+            finishBtn: document.getElementById('finish-btn'),
+            actionTitle: document.getElementById('action-title'),
+            actionDesc: document.getElementById('action-desc'),
+            countdownDisplay: document.getElementById('countdown-display'),
+            moneyCount: document.getElementById('money-count'),
+            workTimerDisplay: document.getElementById('work-timer'),
+            btnResetPos: document.getElementById('btn-reset-pos'),
+            btnPause: document.getElementById('btn-pause'),
+            btnRestart: document.getElementById('btn-restart')
+        };
+
+        // === 逻辑核心 ===
+        function init() {
+            updateTimerUI(state.timeRemaining);
+            startWorkLoop();
+            startWandering(); 
+        }
+
+        function startWorkLoop() {
+            state.isWorking = true;
+            resetVisuals();
+            if(state.workTimer) clearInterval(state.workTimer);
+            state.workTimer = setInterval(() => {
+                if (state.isPaused) return;
+                state.timeRemaining--;
+                updateTimerUI(state.timeRemaining);
+                if (state.timeRemaining <= 0) {
+                    clearInterval(state.workTimer);
+                    startExercise();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            elements.workTimerDisplay.innerText = `${m}:${s}`;
+        }
+
+        function startExercise() {
+            state.isWorking = false;
+            state.isExercising = true;
+            stopWandering();
+
+            const action = exerciseLibrary[Math.floor(Math.random() * exerciseLibrary.length)];
+            elements.actionTitle.innerText = action.t;
+            elements.actionDesc.innerText = action.d;
+            elements.leopard.innerText = action.icon;
+            elements.leopard.className = "leopard-visual"; 
+            void elements.leopard.offsetWidth; 
+            elements.leopard.classList.add(action.anim);
+
+            elements.bubble.style.display = 'block';
+            elements.actionDesc.style.display = 'block';
+            elements.finishBtn.style.display = 'none';
+            elements.countdownDisplay.style.display = 'none';
+
+            setTimeout(() => { startCountdownSequence(); }, (CONFIG.EXERCISE_TOTAL_SECONDS - CONFIG.URGENT_SECONDS) * 1000);
+        }
+
+        function startCountdownSequence() {
+            if (!state.isExercising) return;
+            const randomText = urgentTexts[Math.floor(Math.random() * urgentTexts.length)];
+            elements.wrapper.classList.add('urgent-mode');
+            elements.actionTitle.innerText = randomText;
+            elements.actionDesc.style.display = 'none'; 
+            elements.finishBtn.style.display = 'block'; 
+            elements.countdownDisplay.style.display = 'block';
+            
+            let secondsLeft = CONFIG.URGENT_SECONDS;
+            elements.countdownDisplay.innerText = secondsLeft;
+            
+            if(state.countdownTimer) clearInterval(state.countdownTimer);
+            state.countdownTimer = setInterval(() => {
+                if (state.isPaused) return;
+                secondsLeft--;
+                elements.countdownDisplay.innerText = secondsLeft;
+                if (secondsLeft <= 0) handleTimeout();
+            }, 1000);
+        }
+
+        function handleTimeout() {
+            clearInterval(state.countdownTimer);
+            elements.leopard.innerText = "💸"; 
+            elements.leopard.className = "leopard-visual anim-fly-away";
+            elements.actionTitle.innerText = "飞走了...";
+            elements.finishBtn.style.display = 'none';
+            elements.countdownDisplay.style.display = 'none';
+            showEffect("本钱 -1");
+            
+            setTimeout(() => { 
+                state.isExercising = false; 
+                state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+                startWorkLoop();
+                startWandering(); 
+            }, 1600);
+        }
+
+        elements.finishBtn.addEventListener('click', (e) => {
+            // 注意：因为有 -webkit-app-region: drag，所以按钮必须在 CSS 里设为 no-drag 才能点击
+            e.stopPropagation(); 
+            if (state.countdownTimer) clearInterval(state.countdownTimer);
+            completeAndReward();
+        });
+
+        function completeAndReward() {
+            state.isExercising = false;
+            elements.leopard.innerText = "🤑"; 
+            elements.leopard.className = "leopard-visual"; 
+            elements.leopard.style.animation = "idle-bounce 0.4s infinite"; 
+            addMoney(10);
+            
+            setTimeout(() => { 
+                state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+                startWorkLoop(); 
+                startWandering(); 
+            }, 1500);
+        }
+
+        function resetVisuals() {
+            elements.wrapper.classList.remove('urgent-mode');
+            elements.bubble.style.display = 'none';
+            elements.leopard.innerText = "🐆";
+            elements.leopard.className = "leopard-visual"; 
+            elements.leopard.style.animation = "idle-bounce 2s infinite ease-in-out"; 
+        }
+
+        function addMoney(amount) {
+            state.money += amount;
+            elements.moneyCount.innerText = state.money;
+            showEffect("+💰");
+        }
+
+        function showEffect(text) {
+            const effect = document.createElement('div');
+            effect.className = 'effect-text';
+            effect.innerText = text;
+            elements.wrapper.appendChild(effect);
+            setTimeout(() => effect.remove(), 1500);
+        }
+
+        // === 🚶 散步逻辑 (通过 IPC 控制窗口移动) ===
+        function startWandering() {
+            if (state.wanderTimer) clearInterval(state.wanderTimer);
+            state.wanderTimer = setInterval(() => {
+                if (state.isWorking && !state.isPaused) {
+                    // 50% 概率走动
+                    if (Math.random() > 0.5) performWalk();
+                }
+            }, 4000); 
+        }
+        
+        function stopWandering() {
+            if (state.wanderTimer) clearInterval(state.wanderTimer);
+        }
+
+        function performWalk() {
+            // 随机移动量 (小碎步)
+            const moveX = Math.floor((Math.random() - 0.5) * 60); 
+            const moveY = Math.floor((Math.random() - 0.5) * 20); 
+
+            // 转身
+            if (moveX < 0) elements.leopard.classList.add('facing-left');
+            else elements.leopard.classList.remove('facing-left');
+
+            // 发送给 Main Process 让窗口动起来
+            ipcRenderer.send('window-move', { x: moveX, y: moveY });
+        }
+
+        // === 按钮功能 ===
+        elements.btnResetPos.addEventListener('click', () => {
+            // 发送重置请求
+            ipcRenderer.send('window-reset');
+        });
+
+        elements.btnPause.addEventListener('click', () => {
+            state.isPaused = !state.isPaused;
+            elements.btnPause.innerText = state.isPaused ? "▶" : "❚❚";
+        });
+
+        elements.btnRestart.addEventListener('click', () => {
+            if(state.workTimer) clearInterval(state.workTimer);
+            if(state.countdownTimer) clearInterval(state.countdownTimer);
+            state.isPaused = false;
+            elements.btnPause.innerText = "❚❚";
+            state.timeRemaining = CONFIG.WORK_TIME_SECONDS;
+            state.isExercising = false;
+            resetVisuals();
+            startWorkLoop();
+            startWandering();
+        });
+
+        init();
+    </script>
+</body>
+</html>

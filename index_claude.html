@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>金钱豹桌面宠物</title>
+    <style>
+        /* === 桌面端适配 === */
+        body {
+            background-color: transparent; /* 关键：透明背景 */
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Comic Sans MS', 'Microsoft YaHei', sans-serif;
+            user-select: none;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 信息栏位置 - 放在宠物容器内部 */
+        #piggy-bank {
+            position: absolute;
+            top: 110px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 10px;
+            border: 2px solid #333;
+            border-radius: 8px;
+            box-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+            font-size: 11px;
+            z-index: 90;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: default;
+            pointer-events: auto;
+            min-width: 160px;
+        }
+
+        #piggy-bank .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        #piggy-bank .control-buttons {
+            display: flex;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        #piggy-bank button {
+            background: #fff;
+            border: 1.5px solid #000;
+            border-radius: 3px;
+            padding: 3px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            transition: all 0.1s;
+            box-shadow: 0 1px #000;
+            min-width: 28px;
+            color: #000;
+        }
+
+        #piggy-bank button:hover {
+            background: #f5f5f5;
+        }
+
+        #piggy-bank button:active {
+            box-shadow: 0 0 #000;
+            transform: translateY(1px);
+        }
+        
+        #work-timer {
+            font-family: monospace;
+            font-weight: bold;
+            color: #555;
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* 宠物容器 - 修复拖拽问题 */
+        #pet-container {
+            position: fixed;
+            width: 120px;
+            cursor: grab;
+            z-index: 100;
+            left: 50%;
+            top: 30%;
+            transform: translate(-50%, -50%);
+            pointer-events: auto;
+        }
+
+        #pet-container:active { cursor: grabbing; }
+
+        /* 视觉主体 */
+        .leopard-visual {
+            font-size: 70px;
+            text-align: center;
+            line-height: 100px;
+            filter: drop-shadow(3px 3px 0px rgba(0,0,0,0.15));
+            pointer-events: none;
+            animation: idle-bounce 2s infinite ease-in-out;
+        }
+
+        /* 气泡 */
+        .bubble {
+            position: absolute;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            border: 2px solid #333;
+            padding: 8px;
+            border-radius: 12px 12px 12px 3px;
+            width: 180px;
+            display: none;
+            box-shadow: 3px 3px 0 rgba(0,0,0,0.15);
+            text-align: center;
+            z-index: 110;
+        }
+        .bubble h3 { margin: 0 0 4px 0; font-size: 13px; color: #d35400; }
+        .bubble p { margin: 0 0 6px 0; font-size: 12px; color: #555; line-height: 1.3; }
+
+        /* 紧张模式 UI */
+        .urgent-mode .bubble { border-color: #c0392b; background-color: #fff5f5; animation: shake-tiny 0.5s infinite; }
+        .urgent-mode #action-title { color: #c0392b; font-weight: 800; }
+
+        /* 倒计时 */
+        #countdown-display {
+            font-size: 22px;
+            font-weight: 900;
+            color: #e74c3c;
+            display: none;
+            margin: 3px 0;
+            text-shadow: 1px 1px 0 #fff;
+        }
+
+        /* 按钮 */
+        #finish-btn {
+            background: #f1c40f;
+            color: #333;
+            border: 2px solid #333;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 800;
+            display: none;
+            margin: 3px auto 0;
+            font-size: 13px;
+            box-shadow: 0 3px #d35400;
+            transition: all 0.1s;
+            pointer-events: auto;
+        }
+        #finish-btn:active { box-shadow: 0 0 #d35400; transform: translateY(3px); }
+
+        /* 动效定义 */
+        @keyframes idle-bounce { 0%, 100% { transform: scale(1, 1) translateY(0); } 50% { transform: scale(1.05, 0.95) translateY(6px); } }
+        .anim-fly-away { animation: fly-away 1.5s forwards ease-in !important; }
+        @keyframes fly-away { 0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; } 100% { transform: translate(150px, -300px) rotate(120deg) scale(0); opacity: 0; } }
+        .anim-spin { animation: spin 2s infinite linear !important; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 25% { transform: rotate(-15deg); } 75% { transform: rotate(15deg); } 100% { transform: rotate(0deg); } }
+        .anim-shake { animation: shake 1s infinite ease-in-out !important; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px) rotate(-5deg); } 75% { transform: translateX(10px) rotate(5deg); } }
+        .anim-bounce { animation: bounce 0.8s infinite ease-in-out !important; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        .anim-stretch { animation: stretch 1.5s infinite ease-in-out !important; }
+        @keyframes stretch { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(0.9, 1.1) translateY(-10px); } }
+        .anim-breathe { animation: breathe-deep 2s infinite ease-in-out !important; }
+        @keyframes breathe-deep { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+        @keyframes shake-tiny { 0%, 100% { transform: translateX(-50%) rotate(0deg); } 25% { transform: translateX(-51%) rotate(-1deg); } 75% { transform: translateX(-49%) rotate(1deg); } }
+        
+        .effect-text {
+            position: absolute; font-weight: 900; pointer-events: none; left: 50%; transform: translateX(-50%);
+            z-index: 300; width: 240px; text-align: center; font-size: 16px; text-shadow: 2px 2px 0 #fff; white-space: nowrap;
+        }
+        @keyframes float-up { 0% { opacity: 1; top: -30px; transform: translateX(-50%) scale(0.8); } 100% { opacity: 0; top: -120px; transform: translateX(-50%) scale(1.5); } }
+    </style>
+</head>
+<body>
+    <div id="pet-container">
+        <div class="leopard-visual" id="leopard">🐆</div>
+        <div class="bubble" id="banner">
+            <h3 id="action-title">准备</h3>
+            <p id="action-desc">...</p>
+            <div id="countdown-display">10</div>
+            <button id="finish-btn">💰 打卡进钱</button>
+        </div>
+        <div id="piggy-bank">
+            <div class="info-row">
+                <span>⏳ <span id="work-timer">00:00</span></span>
+                <span style="color:#ddd">|</span>
+                <span>💰 本钱: <span id="money-count" style="color:#d35400; font-weight:bold;">0</span></span>
+            </div>
+            <div class="control-buttons">
+                <button id="locate-btn" title="定位到左下角">📍</button>
+                <button id="pause-btn" title="暂停/播放">⏸️</button>
+                <button id="reset-btn" title="重新开始">🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === 1. 生产环境配置 (时间单位：秒) ===
+        const CONFIG = {
+            WORK_TIME_SECONDS: 25 * 60,      // 工作 25分钟
+            EXERCISE_TOTAL_SECONDS: 5 * 60,  // 休息 5分钟
+            URGENT_SECONDS: 10               // 最后 10秒倒计时
+        };
+
+        // === 2. 动作数据库 (精简展示，全量请复制之前的52条) ===
+        const exerciseLibrary = [
+             { t: "天鹅颈", d: "用鼻尖在空中写一个'8'字，寓意发发发", icon: "🦒", anim: "anim-spin" },
+             { t: "拒绝穷神", d: "缓慢左右转头，对穷神坚定地说不", icon: "🙅‍♂️", anim: "anim-shake" },
+             { t: "耸肩藏金", d: "用力耸肩找耳朵，夹住金币不掉下来", icon: "🤷‍♂️", anim: "anim-bounce" },
+             { t: "摘金苹果", d: "左手右手轮流向上用力抓取！高处有钱！", icon: "🙋‍♂️", anim: "anim-stretch" },
+             { t: "招财猫手", d: "手腕用力向外推，把压力统统推走", icon: "👐", anim: "anim-shake" },
+             { t: "转运呼啦圈", d: "想象腰上有个呼啦圈，慢慢转动", icon: "🎡", anim: "anim-spin" },
+             { t: "夹紧钱包", d: "用力收紧臀部肌肉，夹紧！别松气！", icon: "🍑", anim: "anim-breathe" },
+             { t: "步步高升", d: "原地踏步，膝盖抬高！", icon: "🏃", anim: "anim-bounce" },
+             { t: "股市大盘", d: "眼球上下看，模拟看K线图走势", icon: "👀", anim: "anim-bounce" },
+             // ... 你可以把之前完整的52条复制回这里 ...
+        ];
+        
+        const urgentTexts = ["救救！救救脖子！😱", "钱要飞走啦！💸", "身体本钱要没啦！📉", "快动动！要生锈了！🤖", "为了养老金！冲啊！👵"];
+
+        const state = {
+            isWorking: true,
+            isExercising: false,
+            isPaused: false,
+            money: 0,
+            countdownTimer: null,
+            workTimer: null,
+            workSecondsRemaining: CONFIG.WORK_TIME_SECONDS
+        };
+        const elements = {
+            pet: document.getElementById('pet-container'),
+            leopard: document.getElementById('leopard'),
+            bubble: document.getElementById('banner'),
+            finishBtn: document.getElementById('finish-btn'),
+            actionTitle: document.getElementById('action-title'),
+            actionDesc: document.getElementById('action-desc'),
+            countdownDisplay: document.getElementById('countdown-display'),
+            moneyCount: document.getElementById('money-count'),
+            workTimerDisplay: document.getElementById('work-timer'),
+            topBar: document.getElementById('piggy-bank'),
+            locateBtn: document.getElementById('locate-btn'),
+            pauseBtn: document.getElementById('pause-btn'),
+            resetBtn: document.getElementById('reset-btn')
+        };
+
+        // === 3. Electron 交互逻辑 (关键) ===
+        // 当鼠标进入宠物区域时，通知Electron"我要操作"，否则"请穿透我"
+        if (typeof require !== 'undefined') {
+            const { ipcRenderer } = require('electron');
+
+            const setInteractive = (interactive) => {
+                // 发送消息给主进程：如果是 true，则捕获鼠标；如果是 false，则穿透
+                ipcRenderer.send('set-ignore-mouse-events', !interactive, { forward: true });
+            };
+
+            // 监听宠物容器
+            elements.pet.addEventListener('mouseenter', () => setInteractive(true));
+            elements.pet.addEventListener('mouseleave', () => setInteractive(false));
+        }
+
+        // === 4. 业务逻辑 ===
+        function startWorkLoop() {
+            state.isWorking = true;
+            state.isPaused = false;
+            resetVisuals();
+            state.workSecondsRemaining = CONFIG.WORK_TIME_SECONDS;
+            updateTimerUI(state.workSecondsRemaining);
+            updatePauseButton();
+            if(state.workTimer) clearInterval(state.workTimer);
+            state.workTimer = setInterval(() => {
+                if (!state.isPaused) {
+                    state.workSecondsRemaining--;
+                    updateTimerUI(state.workSecondsRemaining);
+                    if (state.workSecondsRemaining <= 0) {
+                        clearInterval(state.workTimer);
+                        startExercise();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI(seconds) {
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            elements.workTimerDisplay.innerText = `${m}:${s}`;
+        }
+
+        function startExercise() {
+            state.isWorking = false;
+            state.isExercising = true;
+            // 播放音效 (可添加)
+            const action = exerciseLibrary[Math.floor(Math.random() * exerciseLibrary.length)];
+            elements.actionTitle.innerText = action.t;
+            elements.actionDesc.innerText = action.d;
+            elements.leopard.innerText = action.icon;
+            elements.leopard.className = "leopard-visual"; 
+            void elements.leopard.offsetWidth; 
+            elements.leopard.classList.add(action.anim);
+            elements.bubble.style.display = 'block';
+            elements.actionDesc.style.display = 'block';
+            elements.finishBtn.style.display = 'none';
+            elements.countdownDisplay.style.display = 'none';
+
+            const instructionTime = (CONFIG.EXERCISE_TOTAL_SECONDS - CONFIG.URGENT_SECONDS) * 1000;
+            setTimeout(() => { startCountdownSequence(); }, instructionTime);
+        }
+
+        function startCountdownSequence() {
+            if (!state.isExercising) return;
+            const randomText = urgentTexts[Math.floor(Math.random() * urgentTexts.length)];
+            elements.pet.classList.add('urgent-mode');
+            elements.actionTitle.innerText = randomText;
+            elements.actionDesc.style.display = 'none'; 
+            elements.finishBtn.style.display = 'block'; 
+            elements.countdownDisplay.style.display = 'block';
+            let secondsLeft = CONFIG.URGENT_SECONDS;
+            elements.countdownDisplay.innerText = secondsLeft;
+            if(state.countdownTimer) clearInterval(state.countdownTimer);
+            state.countdownTimer = setInterval(() => {
+                secondsLeft--;
+                elements.countdownDisplay.innerText = secondsLeft;
+                if (secondsLeft <= 0) handleTimeout();
+            }, 1000);
+        }
+
+        function handleTimeout() {
+            clearInterval(state.countdownTimer);
+            elements.leopard.innerText = "💸"; 
+            elements.leopard.className = "leopard-visual anim-fly-away";
+            elements.actionTitle.innerText = "飞走了...";
+            elements.finishBtn.style.display = 'none';
+            elements.countdownDisplay.style.display = 'none';
+            showEffect("身体本钱 -1", "#7f8c8d");
+            setTimeout(() => { state.isExercising = false; startWorkLoop(); }, 1600);
+        }
+
+        elements.finishBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            if (state.countdownTimer) clearInterval(state.countdownTimer);
+            completeAndReward();
+        });
+
+        function completeAndReward() {
+            state.isExercising = false;
+            elements.leopard.innerText = "🤑"; 
+            elements.leopard.className = "leopard-visual"; 
+            elements.leopard.style.animation = "idle-bounce 0.4s infinite"; 
+            addMoney(10);
+            setTimeout(() => { startWorkLoop(); }, 1500);
+        }
+
+        function resetVisuals() {
+            elements.pet.classList.remove('urgent-mode');
+            elements.bubble.style.display = 'none';
+            elements.leopard.innerText = "🐆";
+            elements.leopard.className = "leopard-visual"; 
+            elements.leopard.style.animation = ""; 
+        }
+
+        function addMoney(amount) {
+            state.money += amount;
+            elements.moneyCount.innerText = state.money;
+            showEffect("+💰 打卡进账", "#f1c40f");
+        }
+
+        function showEffect(text, color) {
+            const effect = document.createElement('div');
+            effect.className = 'effect-text';
+            effect.innerText = text;
+            effect.style.color = color;
+            effect.style.animation = "float-up 1.5s forwards";
+            elements.pet.appendChild(effect);
+            setTimeout(() => effect.remove(), 1500);
+        }
+
+        elements.pet.addEventListener('click', () => {
+            if (state.isExercising) return;
+            const randomFace = ["😸", "😺", "😽"];
+            elements.leopard.innerText = randomFace[Math.floor(Math.random() * randomFace.length)];
+            setTimeout(() => elements.leopard.innerText = "🐆", 800);
+        });
+
+        // === 按钮功能 ===
+        // 定位按钮：移动到左下角
+        elements.locateBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            // 左下角留出边距
+            elements.pet.style.left = '100px';
+            elements.pet.style.top = (screenHeight - 300) + 'px';
+            elements.pet.style.transform = 'none';
+        });
+
+        // 暂停/播放按钮
+        elements.pauseBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.isPaused = !state.isPaused;
+            updatePauseButton();
+        });
+
+        function updatePauseButton() {
+            elements.pauseBtn.innerText = state.isPaused ? '▶️' : '⏸️';
+            elements.pauseBtn.title = state.isPaused ? '播放' : '暂停';
+        }
+
+        // 重启按钮
+        elements.resetBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.workTimer) clearInterval(state.workTimer);
+            if (state.countdownTimer) clearInterval(state.countdownTimer);
+            state.isExercising = false;
+            startWorkLoop();
+        });
+
+        // 拖拽 - 修复定位问题
+        let isDragging = false;
+        let dragStartX, dragStartY, initialLeft, initialTop;
+
+        elements.pet.addEventListener('mousedown', (e) => {
+            // 如果点击的是按钮,不触发拖拽
+            if (e.target.tagName === 'BUTTON') return;
+
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+
+            const rect = elements.pet.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+
+            elements.pet.style.cursor = 'grabbing';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragStartX;
+            const dy = e.clientY - dragStartY;
+            elements.pet.style.left = (initialLeft + dx) + 'px';
+            elements.pet.style.top = (initialTop + dy) + 'px';
+            elements.pet.style.transform = 'none';
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isDragging) {
+                isDragging = false;
+                elements.pet.style.cursor = 'grab';
+            }
+        });
+        
+        startWorkLoop();
+    </script>
+</body>
+</html>
