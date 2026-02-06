@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>🐆 金钱豹</title>
+    <title>🐆 豹豹保护你的医保</title>
     <style>
         /* === 全局环境 === */
         body {
@@ -414,8 +414,8 @@
         }
 
         .modal-box.large {
-            width: 400px;
-            max-height: 500px;
+            width: 500px;
+            max-height: 600px;
         }
 
         .modal-header {
@@ -425,6 +425,8 @@
             margin-bottom: 20px;
             padding-bottom: 10px;
             border-bottom: 2px solid #f0f0f0;
+            position: relative;
+            pointer-events: auto;
         }
 
         .modal-icon {
@@ -436,13 +438,64 @@
             font-weight: 900;
             color: #000;
             margin: 0;
+            flex: 1;
+        }
+
+        .modal-tutorial-btn {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            padding: 0;
+            pointer-events: auto;
+            z-index: 10;
+            position: relative;
+        }
+
+        .modal-tutorial-btn:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+        }
+
+        .modal-tutorial-btn:active {
+            transform: translateY(0);
         }
 
         .modal-body {
             margin-bottom: 20px;
         }
 
+        #data-content {
+            overflow: visible;
+        }
+
+        #tab-calendar {
+            overflow: visible;
+        }
+
         .modal-body.scrollable {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .tab-content {
+            min-height: 300px;
+        }
+
+        #tab-calendar {
+            overflow: visible;
+            min-height: auto;
+        }
+
+        #tab-today.scrollable {
             max-height: 300px;
             overflow-y: auto;
             padding-right: 10px;
@@ -576,6 +629,383 @@
             color: #999;
             font-size: 14px;
         }
+
+        /* Tab样式 */
+        .tab-container {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            font-size: 14px;
+            font-weight: 800;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            color: #000;
+            border-bottom-color: #000;
+        }
+
+        .tab-btn:hover {
+            color: #000;
+            background: #f9f9f9;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 热力图样式 */
+        .heatmap-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .heatmap-day {
+            aspect-ratio: 1;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .heatmap-day:hover {
+            border-color: #000;
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .heatmap-day.empty {
+            background: #f5f5f5;
+            border-color: #e0e0e0;
+            cursor: default;
+        }
+
+        .heatmap-day.level-0 {
+            background: #ebedf0;
+        }
+
+        .heatmap-day.level-1 {
+            background: #c6e48b;
+        }
+
+        .heatmap-day.level-2 {
+            background: #7bc96f;
+        }
+
+        .heatmap-day.level-3 {
+            background: #239a3b;
+        }
+
+        .heatmap-day.level-4 {
+            background: #196127;
+        }
+
+        .heatmap-legend {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 11px;
+            color: #666;
+            margin-top: 10px;
+        }
+
+        .heatmap-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .heatmap-legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .heatmap-month-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* 日历样式 */
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 0 10px;
+            pointer-events: auto;
+        }
+
+        .calendar-nav-btn {
+            width: 36px;
+            height: 36px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 24px;
+            font-weight: 900;
+            color: #000;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            pointer-events: auto;
+            z-index: 10;
+            position: relative;
+        }
+
+        .calendar-nav-btn:hover {
+            background: #f5f5f5;
+            transform: translateY(-2px);
+        }
+
+        .calendar-nav-btn:active {
+            transform: translateY(0);
+        }
+
+        .calendar-month-year {
+            font-size: 18px;
+            font-weight: 900;
+            color: #000;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .calendar-weekday {
+            text-align: center;
+            font-size: 12px;
+            font-weight: 800;
+            color: #666;
+            padding: 8px 0;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            padding: 4px;
+        }
+
+        .calendar-day:hover {
+            border-color: #000;
+            transform: scale(1.05);
+            z-index: 10;
+        }
+
+        .calendar-day.other-month {
+            opacity: 0.3;
+            cursor: default;
+        }
+
+        .calendar-day.today {
+            border-color: #000;
+            border-width: 3px;
+        }
+
+        .calendar-day-number {
+            font-size: 14px;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 4px;
+        }
+
+        .calendar-day-count {
+            font-size: 11px;
+            font-weight: 700;
+            color: #666;
+        }
+
+        .calendar-day.level-0 {
+            background: #f5f5f5;
+        }
+
+        .calendar-day.level-1 {
+            background: #ffcccc;
+        }
+
+        .calendar-day.level-2 {
+            background: #ff9999;
+        }
+
+        .calendar-day.level-3 {
+            background: #ff6666;
+        }
+
+        .calendar-day.level-4 {
+            background: #ff3333;
+        }
+
+        .calendar-day.level-5 {
+            background: #ff0000;
+        }
+
+        /* Onboard教程样式 */
+        #onboard-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 20000;
+            pointer-events: auto;
+        }
+
+        .onboard-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .onboard-content {
+            background: #fff;
+            border: 3px solid #000;
+            border-radius: 20px;
+            padding: 30px;
+            width: 400px;
+            max-width: 90vw;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: modal-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .onboard-step {
+            display: none;
+        }
+
+        .onboard-step.active {
+            display: block;
+        }
+
+        .onboard-title {
+            font-size: 20px;
+            font-weight: 900;
+            color: #000;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .onboard-text {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .onboard-icon {
+            font-size: 60px;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .onboard-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .onboard-btn {
+            padding: 10px 20px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .onboard-btn.primary {
+            background: #000;
+            color: #fff;
+        }
+
+        .onboard-btn.primary:hover {
+            background: #333;
+            transform: translateY(-2px);
+        }
+
+        .onboard-btn.secondary {
+            background: #f5f5f5;
+            color: #000;
+        }
+
+        .onboard-btn.secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .onboard-progress {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .onboard-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ddd;
+            transition: all 0.2s;
+        }
+
+        .onboard-dot.active {
+            background: #000;
+            transform: scale(1.2);
+        }
 </style>
 </head>
 <body>
@@ -606,7 +1036,7 @@
             <div class="status-row-top">
                 <span id="work-timer" class="status-text">⏳ 10:00</span>
                 <div class="divider"></div>
-                <span class="status-text">今日 ¥<span id="money-count">0</span></span>
+                <span class="status-text">今日 ¥<span id="money-count"></span>k</span>
             </div>
             <!-- 第二行：按钮 -->
             <div class="controls">
@@ -639,6 +1069,7 @@
                 <div class="modal-header">
                     <span class="modal-icon">⚙️</span>
                     <h3 class="modal-title">设置</h3>
+                    <button class="modal-tutorial-btn" id="settings-tutorial" title="查看教程">📖</button>
                 </div>
                 <div class="modal-body">
                     <div class="setting-item">
@@ -662,15 +1093,86 @@
     <div id="data-modal" class="modal">
         <div class="modal-backdrop">
             <div class="modal-box large">
-                <div class="modal-header">
-                    <span class="modal-icon">📊</span>
-                    <h3 class="modal-title">打卡记录</h3>
+                <div class="tab-container">
+                    <button class="tab-btn active" data-tab="calendar">日历</button>
+                    <button class="tab-btn" data-tab="today">今日记录</button>
                 </div>
-                <div class="modal-body scrollable" id="data-content">
-                    <!-- 动态生成数据内容 -->
+                <div class="modal-body" id="data-content">
+                    <!-- Tab 1: 日历 -->
+                    <div class="tab-content active" id="tab-calendar">
+                        <div id="calendar-content">
+                            <div class="calendar-header">
+                                <button class="calendar-nav-btn" id="calendar-prev">‹</button>
+                                <div class="calendar-month-year" id="calendar-month-year"></div>
+                                <button class="calendar-nav-btn" id="calendar-next">›</button>
+                            </div>
+                            <div id="calendar-grid"></div>
+                        </div>
+                    </div>
+                    <!-- Tab 2: 今日打卡记录 -->
+                    <div class="tab-content scrollable" id="tab-today">
+                        <div id="today-content"></div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="modal-btn cancel" id="data-close">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onboard教程弹窗 -->
+    <div id="onboard-modal">
+        <div class="onboard-overlay">
+            <div class="onboard-content">
+                <div class="onboard-progress" id="onboard-progress"></div>
+                <!-- Step 1 -->
+                <div class="onboard-step active" data-step="1">
+                    <div class="onboard-icon">🐆</div>
+                    <div class="onboard-title">欢迎使用金钱豹！</div>
+                    <div class="onboard-text">
+                        我是你的桌面宠物，会提醒你定时休息和运动，保护你的健康，同时帮你打卡记录。
+                    </div>
+                    <div class="onboard-buttons">
+                        <button class="onboard-btn secondary onboard-skip">跳过</button>
+                        <button class="onboard-btn primary onboard-next">下一步</button>
+                    </div>
+                </div>
+                <!-- Step 2 -->
+                <div class="onboard-step" data-step="2">
+                    <div class="onboard-icon">⏳</div>
+                    <div class="onboard-title">工作与休息</div>
+                    <div class="onboard-text">
+                        工作时间结束后，我会提醒你休息。休息时我会推荐一个运动动作，完成运动后点击"💰 打卡进钱💰"按钮即可打卡成功！
+                    </div>
+                    <div class="onboard-buttons">
+                        <button class="onboard-btn secondary onboard-prev">上一步</button>
+                        <button class="onboard-btn primary onboard-next">下一步</button>
+                    </div>
+                </div>
+                <!-- Step 3 -->
+                <div class="onboard-step" data-step="3">
+                    <div class="onboard-icon">✅</div>
+                    <div class="onboard-title">补打卡功能</div>
+                    <div class="onboard-text">
+                        如果错过了打卡，可以点击状态栏的✅按钮手动确认打卡。每天完成的打卡次数会显示在"今日 ¥Xk"中。
+                    </div>
+                    <div class="onboard-buttons">
+                        <button class="onboard-btn secondary onboard-prev">上一步</button>
+                        <button class="onboard-btn primary onboard-next">下一步</button>
+                    </div>
+                </div>
+                <!-- Step 4 -->
+                <div class="onboard-step" data-step="4">
+                    <div class="onboard-icon">📊</div>
+                    <div class="onboard-title">查看记录</div>
+                    <div class="onboard-text">
+                        点击📊按钮可以查看你的打卡记录，包括热力图日历和每日详细记录。现在开始你的健康之旅吧！
+                    </div>
+                    <div class="onboard-buttons">
+                        <button class="onboard-btn secondary onboard-prev">上一步</button>
+                        <button class="onboard-btn primary onboard-finish">开始使用</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -698,6 +1200,43 @@
             localStorage.setItem('petSettings', JSON.stringify(settings));
         }
 
+        // === 今日打卡次数管理 ===
+        function pad2(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        // 使用本地时区的日期字符串（避免 toISOString() 的 UTC 跨天问题）
+        function getLocalDateString(date = new Date()) {
+            const y = date.getFullYear();
+            const m = pad2(date.getMonth() + 1);
+            const d = pad2(date.getDate());
+            return `${y}-${m}-${d}`;
+        }
+
+        function getTodayDateString() {
+            return getLocalDateString(new Date()); // YYYY-MM-DD（本地）
+        }
+
+        // 获取今日打卡次数（从历史记录中统计）
+        function getTodayCheckinCount() {
+            const history = loadHistory();
+            const today = getTodayDateString();
+            const todayRecord = history.find(day => day.date === today);
+
+            if (!todayRecord) {
+                return 0;
+            }
+
+            // 统计今日成功打卡的次数
+            return todayRecord.sessions.filter(s => s.checkedIn).length;
+        }
+
+        // 更新打卡次数显示
+        function updateCheckinCountDisplay() {
+            const count = getTodayCheckinCount();
+            elements.moneyCount.innerText = count;
+        }
+
         // === 数据记录管理 ===
         function loadHistory() {
             const saved = localStorage.getItem('petHistory');
@@ -718,7 +1257,7 @@
         function recordSession(checkedIn, activity) {
             const history = loadHistory();
             const now = new Date();
-            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const dateStr = getLocalDateString(now); // YYYY-MM-DD（本地）
             const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
 
             // 查找今天的记录
@@ -736,6 +1275,9 @@
             });
 
             saveHistory(history);
+
+            // 更新打卡次数显示
+            updateCheckinCountDisplay();
         }
 
         // 初始化CONFIG，优先使用保存的设置
@@ -817,7 +1359,6 @@
             { t: "脚踝画圈", d: "转动脚踝，顺时针三圈，逆时针三圈", icon: "🦶", anim: "anim-spin" },
             { t: "脚趾抓地", d: "像用脚趾抓地上的硬币一样用力", icon: "🦅", anim: "anim-breathe" },
             { t: "隐形跑步", d: "在桌子底下快速交替跺脚", icon: "🐾", anim: "anim-shake" },
-            { t: "小腿按摩", d: "用脚跟去蹭另一条腿的小腿肚", icon: "🦵", anim: "anim-shake" },
 
             // 👀 眼睛/面部
             { t: "股市大盘", d: "眼球上下看，模拟看K线图走势", icon: "👀", anim: "anim-bounce" },
@@ -830,7 +1371,7 @@
         ];
 
         const state = {
-            isWorking: true, isExercising: false, isPaused: false, money: 0, lastRoundCheckedIn: false,
+            isWorking: true, isExercising: false, isPaused: false, lastRoundCheckedIn: false,
             countdownTimer: null, workTimer: null, rotateTimer: null, popupTimer: null,
             timeRemaining: CONFIG.WORK_TIME_SECONDS
         };
@@ -863,18 +1404,91 @@
             inputRestTime: document.getElementById('input-rest-time'),
             settingsSave: document.getElementById('settings-save'),
             settingsCancel: document.getElementById('settings-cancel'),
+            settingsTutorial: document.getElementById('settings-tutorial'),
             dataContent: document.getElementById('data-content'),
-            dataClose: document.getElementById('data-close')
+            dataClose: document.getElementById('data-close'),
+            onboardModal: document.getElementById('onboard-modal'),
+            calendarContent: document.getElementById('calendar-content'),
+            calendarGrid: document.getElementById('calendar-grid'),
+            calendarMonthYear: document.getElementById('calendar-month-year'),
+            calendarPrev: document.getElementById('calendar-prev'),
+            calendarNext: document.getElementById('calendar-next'),
+            todayContent: document.getElementById('today-content')
         };
 
         function init() {
+            // 初始化显示今日打卡次数
+            updateCheckinCountDisplay();
+            state.currentDateStr = getTodayDateString();
             updateTimerUI(state.timeRemaining);
             startWorkLoop();
             startAutoRotate();
             startRandomPopup();
             updateCheckinButtonState(); // Call on init
             setTimeout(() => performRandomCelebration(), 800);
+            
+            // 检查是否需要显示onboard教程
+            checkAndShowOnboard();
+
+            // 启动跨天刷新（本地 0:00）
+            scheduleMidnightRefresh();
         }
+
+        // === 跨天刷新（本地 0:00）===
+        let midnightRefreshTimer = null;
+
+        function getMsUntilNextLocalMidnight(now = new Date()) {
+            const next = new Date(now);
+            next.setHours(24, 0, 0, 0); // 下一次本地 0:00
+            return next.getTime() - now.getTime();
+        }
+
+        function handleDayChangeIfNeeded() {
+            const todayStr = getTodayDateString();
+
+            if (!state.currentDateStr) {
+                state.currentDateStr = todayStr;
+                return;
+            }
+
+            if (state.currentDateStr === todayStr) return;
+
+            state.currentDateStr = todayStr;
+
+            // 新的一天：UI 刷新 + 允许补打卡按钮重新可用
+            state.lastRoundCheckedIn = false;
+            updateCheckinButtonState();
+            updateCheckinCountDisplay();
+
+            // 如果数据弹窗打开，同时刷新内容（避免仍显示昨天）
+            if (elements.dataModal.style.display === 'block') {
+                try {
+                    renderTodayRecords();
+                    renderCalendar();
+                } catch (e) {
+                    // ignore
+                }
+            }
+        }
+
+        function scheduleMidnightRefresh() {
+            if (midnightRefreshTimer) clearTimeout(midnightRefreshTimer);
+
+            const delay = Math.max(0, getMsUntilNextLocalMidnight());
+            midnightRefreshTimer = setTimeout(() => {
+                handleDayChangeIfNeeded();
+                scheduleMidnightRefresh();
+            }, delay + 50); // 轻微缓冲，避免系统时钟抖动
+        }
+
+        // 防止睡眠/唤醒导致错过 setTimeout：回到前台时补偿检查
+        window.addEventListener('focus', () => {
+            handleDayChangeIfNeeded();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) handleDayChangeIfNeeded();
+        });
 
         // Helper to update check-in button state
         function updateCheckinButtonState() {
@@ -892,41 +1506,73 @@
 
         // 🔥 实时检测鼠标位置，判断是否在可交互区域
         let lastClickThroughState = true;
+        let lastMouseClientX = 0;
+        let lastMouseClientY = 0;
+        let forcedInteractive = false; // 通过捕获阶段事件强制关闭穿透（比 elementFromPoint 更可靠）
 
-        document.addEventListener('mousemove', (e) => {
-            // 如果正在拖拽或弹窗打开，不穿透
-            if (isDragging ||
-                elements.confirmModal.style.display === 'block' ||
-                elements.settingsModal.style.display === 'block' ||
-                elements.dataModal.style.display === 'block') {
-                if (lastClickThroughState) {
-                    setWindowClickThrough(false);
-                    lastClickThroughState = false;
-                }
-                return;
-            }
+        const INTERACTIVE_SELECTOR = [
+            '#pet-visual-area',
+            '#status-bar',
+            '.bubble-container',
+            '#custom-confirm-modal',
+            '.modal',
+            '.corner-buttons'
+        ].join(', ');
 
-            // 获取鼠标位置下的元素
-            const elementUnderMouse = document.elementFromPoint(e.clientX, e.clientY);
-
-            // 检查是否在可交互区域（金钱豹、状态栏、气泡、弹窗、角落按钮）
-            const isInteractive = elementUnderMouse && (
-                elementUnderMouse.closest('#pet-visual-area') ||
-                elementUnderMouse.closest('#status-bar') ||
-                elementUnderMouse.closest('.bubble-container') ||
-                elementUnderMouse.closest('#custom-confirm-modal') ||
-                elementUnderMouse.closest('.modal') ||
-                elementUnderMouse.closest('.corner-buttons')
-            );
-
-            const shouldClickThrough = !isInteractive;
-
-            // 只在状态改变时发送消息
+        function setClickThroughIfChanged(shouldClickThrough) {
             if (shouldClickThrough !== lastClickThroughState) {
                 setWindowClickThrough(shouldClickThrough);
                 lastClickThroughState = shouldClickThrough;
             }
-        });
+        }
+
+        function isAnyModalOpen() {
+            return (
+                elements.confirmModal.style.display === 'block' ||
+                elements.settingsModal.style.display === 'block' ||
+                elements.dataModal.style.display === 'block'
+            );
+        }
+
+        // 统一入口：根据鼠标坐标更新穿透状态
+        function updateClickThroughFromMouse(x, y) {
+            lastMouseClientX = x;
+            lastMouseClientY = y;
+
+            // 拖拽/弹窗/强制交互期间：必须不穿透
+            if (isDragging || forcedInteractive || isAnyModalOpen()) {
+                setClickThroughIfChanged(false);
+                return;
+            }
+
+            const elementUnderMouse = document.elementFromPoint(x, y);
+            const isInteractive = !!(elementUnderMouse && elementUnderMouse.closest(INTERACTIVE_SELECTOR));
+            setClickThroughIfChanged(!isInteractive);
+        }
+
+        // 用 mousemove（Electron ignoreMouseEvents + forward:true 时稳定会收到）
+        document.addEventListener('mousemove', (e) => {
+            updateClickThroughFromMouse(e.clientX, e.clientY);
+        }, { passive: true });
+
+        // 捕获阶段：只要进入交互区域，就强制关穿透（避免 elementFromPoint 偶发误判）
+        document.addEventListener('pointerover', (e) => {
+            const target = e.target;
+            if (target && target.closest && target.closest(INTERACTIVE_SELECTOR)) {
+                forcedInteractive = true;
+                setClickThroughIfChanged(false);
+            }
+        }, true);
+
+        // 离开交互区域后，恢复基于鼠标位置的判断
+        document.addEventListener('pointerout', (e) => {
+            if (!forcedInteractive) return;
+            const next = e.relatedTarget;
+            if (next && next.closest && next.closest(INTERACTIVE_SELECTOR)) return; // 仍在交互区内
+
+            forcedInteractive = false;
+            updateClickThroughFromMouse(lastMouseClientX, lastMouseClientY);
+        }, true);
 
         // 🔥 在点击和拖拽时也要确保窗口不穿透
         document.addEventListener('mousedown', () => {
@@ -967,8 +1613,7 @@
                 isDragging = false;
                 // 拖拽结束后延迟一下再根据鼠标位置决定是否穿透
                 setTimeout(() => {
-                    const e = { clientX: 0, clientY: 0 };
-                    // 触发一次mousemove来更新穿透状态
+                    updateClickThroughFromMouse(lastMouseClientX, lastMouseClientY);
                 }, 100);
             }
         });
@@ -999,10 +1644,9 @@
         }
 
         elements.confirmYes.addEventListener('click', () => {
-            addMoney(10);
             state.lastRoundCheckedIn = true;
 
-            // 记录手动补打卡数据
+            // 记录手动补打卡数据（会自动更新打卡次数显示）
             const activity = state.currentExercise ? state.currentExercise.t : '手动确认打卡';
             recordSession(true, activity);
 
@@ -1079,6 +1723,17 @@
             setWindowClickThrough(true);
         });
 
+        // 设置弹窗中的教程按钮
+        if (elements.settingsTutorial) {
+            elements.settingsTutorial.addEventListener('click', (e) => {
+                e.stopPropagation();
+                elements.settingsModal.style.display = 'none';
+                // 重置onboard步骤并显示
+                currentOnboardStep = 1;
+                showOnboard();
+            });
+        }
+
         // 点击背景关闭
         elements.settingsModal.addEventListener('click', (e) => {
             if (e.target === elements.settingsModal || e.target.className === 'modal-backdrop') {
@@ -1099,59 +1754,209 @@
             showDataModal();
         });
 
-        function showDataModal() {
-            const history = loadHistory();
-            elements.dataContent.innerHTML = '';
+        // 日历当前显示的月份
+        let currentCalendarMonth = new Date();
+        currentCalendarMonth.setDate(1); // 设置为月初
 
-            if (history.length === 0) {
-                elements.dataContent.innerHTML = '<div class="data-empty">还没有打卡记录呢~<br>开始工作吧！💪</div>';
-            } else {
-                // 倒序显示（最新的在前）
-                const sortedHistory = [...history].reverse();
-                sortedHistory.forEach(day => {
-                    const checkedInCount = day.sessions.filter(s => s.checkedIn).length;
-                    const totalCount = day.sessions.length;
-                    const rate = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0;
-
-                    const dayDiv = document.createElement('div');
-                    dayDiv.className = 'data-day';
-                    dayDiv.innerHTML = `
-                        <div class="data-day-header">
-                            <div class="data-day-date">${formatDate(day.date)}</div>
-                            <div class="data-day-stats">${checkedInCount}/${totalCount} (${rate}%)</div>
-                        </div>
-                        ${day.sessions.map(session => `
-                            <div class="data-session">
-                                <div class="data-session-time">${session.time.substring(0, 5)}</div>
-                                <div class="data-session-activity">${session.activity}</div>
-                                <div class="data-session-status">${session.checkedIn ? '✅' : '❌'}</div>
-                            </div>
-                        `).join('')}
-                    `;
-                    elements.dataContent.appendChild(dayDiv);
+        // Tab切换功能
+        function initTabs() {
+            const tabBtns = document.querySelectorAll('.tab-btn');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.dataset.tab;
+                    
+                    // 更新tab按钮状态
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // 更新tab内容
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    
+                    if (tabName === 'calendar') {
+                        document.getElementById('tab-calendar').classList.add('active');
+                        renderCalendar();
+                    } else {
+                        document.getElementById('tab-today').classList.add('active');
+                        renderTodayRecords();
+                    }
                 });
-            }
+            });
+        }
 
+        function showDataModal() {
+            // 初始化tabs
+            initTabs();
+            
+            // 重置日历到当前月份
+            currentCalendarMonth = new Date();
+            currentCalendarMonth.setDate(1);
+            
+            // 默认显示日历
+            renderCalendar();
+            renderTodayRecords();
+            
             elements.dataModal.style.display = 'block';
             setWindowClickThrough(false);
         }
 
+        // 渲染日历
+        function renderCalendar() {
+            const history = loadHistory();
+            
+            // 创建日期到打卡次数的映射
+            const dateMap = {};
+            history.forEach(day => {
+                const checkedInCount = day.sessions.filter(s => s.checkedIn).length;
+                dateMap[day.date] = checkedInCount;
+            });
+
+            const year = currentCalendarMonth.getFullYear();
+            const month = currentCalendarMonth.getMonth();
+            
+            // 更新月份显示
+            elements.calendarMonthYear.textContent = `${year}年${month + 1}月`;
+
+            // 获取该月第一天和最后一天
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const firstDayOfWeek = firstDay.getDay(); // 0=周日, 6=周六
+            const daysInMonth = lastDay.getDate();
+
+            // 清空日历网格
+            elements.calendarGrid.innerHTML = '';
+
+            // 添加星期标签
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            weekdays.forEach(day => {
+                const weekdayDiv = document.createElement('div');
+                weekdayDiv.className = 'calendar-weekday';
+                weekdayDiv.textContent = day;
+                elements.calendarGrid.appendChild(weekdayDiv);
+            });
+
+            // 填充月初空白
+            for (let i = 0; i < firstDayOfWeek; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'calendar-day other-month';
+                elements.calendarGrid.appendChild(emptyDiv);
+            }
+
+            // 填充该月的所有日期
+            const today = new Date();
+            const todayStr = getLocalDateString(today);
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, month, day);
+                const dateStr = getLocalDateString(date);
+                const count = dateMap[dateStr] || 0;
+                
+                // 计算颜色等级（0-5级，次数越多颜色越突出）
+                // 0次=0级, 1-2次=1级, 3-4次=2级, 5-6次=3级, 7-8次=4级, 9次以上=5级
+                const level = count === 0 ? 0 : Math.min(5, Math.ceil(count / 2));
+                
+                const dayDiv = document.createElement('div');
+                dayDiv.className = `calendar-day level-${level}`;
+                
+                if (dateStr === todayStr) {
+                    dayDiv.classList.add('today');
+                }
+                
+                dayDiv.innerHTML = `
+                    <div class="calendar-day-number">${day}</div>
+                    <div class="calendar-day-count">${count > 0 ? count + '次' : ''}</div>
+                `;
+                
+                dayDiv.title = `${dateStr}: ${count}次带薪放松`;
+                
+                elements.calendarGrid.appendChild(dayDiv);
+            }
+
+            // 填充月末空白（保持7列布局）
+            const totalCells = firstDayOfWeek + daysInMonth;
+            const remainingCells = 7 - (totalCells % 7);
+            if (remainingCells < 7) {
+                for (let i = 0; i < remainingCells; i++) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.className = 'calendar-day other-month';
+                    elements.calendarGrid.appendChild(emptyDiv);
+                }
+            }
+        }
+
+        // 日历月份切换
+        if (elements.calendarPrev) {
+            elements.calendarPrev.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() - 1);
+                renderCalendar();
+            });
+        }
+
+        if (elements.calendarNext) {
+            elements.calendarNext.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentCalendarMonth.setMonth(currentCalendarMonth.getMonth() + 1);
+                renderCalendar();
+            });
+        }
+
+
+        // 渲染今日打卡记录
+        function renderTodayRecords() {
+            const history = loadHistory();
+            const today = getTodayDateString();
+            const todayRecord = history.find(day => day.date === today);
+            const todayContent = elements.todayContent;
+            todayContent.innerHTML = '';
+
+            if (!todayRecord || todayRecord.sessions.length === 0) {
+                todayContent.innerHTML = '<div class="data-empty">今天还没有打卡记录呢~<br>开始工作吧！💪</div>';
+                return;
+            }
+
+            const checkedInCount = todayRecord.sessions.filter(s => s.checkedIn).length;
+            const totalCount = todayRecord.sessions.length;
+            const rate = totalCount > 0 ? Math.round((checkedInCount / totalCount) * 100) : 0;
+
+            const header = document.createElement('div');
+            header.className = 'data-day-header';
+            header.innerHTML = `
+                <div class="data-day-date">今天</div>
+                <div class="data-day-stats">${checkedInCount}/${totalCount} (${rate}%)</div>
+            `;
+            todayContent.appendChild(header);
+
+            // 倒序显示（最新的在前）
+            const sortedSessions = [...todayRecord.sessions].reverse();
+            sortedSessions.forEach(session => {
+                const sessionDiv = document.createElement('div');
+                sessionDiv.className = 'data-session';
+                sessionDiv.innerHTML = `
+                                <div class="data-session-time">${session.time.substring(0, 5)}</div>
+                                <div class="data-session-activity">${session.activity}</div>
+                                <div class="data-session-status">${session.checkedIn ? '✅' : '❌'}</div>
+                    `;
+                todayContent.appendChild(sessionDiv);
+                });
+        }
+
         function formatDate(dateStr) {
-            const date = new Date(dateStr);
             const today = new Date();
             const yesterday = new Date(today);
             yesterday.setDate(yesterday.getDate() - 1);
 
-            const dateOnly = dateStr.split('T')[0];
-            const todayStr = today.toISOString().split('T')[0];
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const dateOnly = (dateStr && dateStr.includes('T')) ? dateStr.split('T')[0] : dateStr;
+            const todayStr = getLocalDateString(today);
+            const yesterdayStr = getLocalDateString(yesterday);
 
             if (dateOnly === todayStr) {
                 return '今天';
             } else if (dateOnly === yesterdayStr) {
                 return '昨天';
             } else {
-                return dateStr;
+                return dateOnly;
             }
         }
 
@@ -1412,14 +2217,13 @@
             elements.bubble.style.display = 'none';
             elements.wrapper.classList.remove('urgent-mode');
 
-            // 记录数据：已打卡
+            // 记录数据：已打卡（会自动更新打卡次数显示）
             const activity = state.currentExercise ? state.currentExercise.t : '休息';
             recordSession(true, activity);
 
             elements.leopard.innerText = "🤑";
             elements.leopard.className = "leopard-visual";
             elements.leopard.style.animation = "idle-bounce 0.3s infinite";
-            addMoney(10);
             triggerBigEmojiExplosion();
             state.lastRoundCheckedIn = true; // 打卡后设置为已打卡
             updateCheckinButtonState(); // 更新按钮状态
@@ -1452,12 +2256,6 @@
             elements.leopard.style.animation = "idle-bounce 2.5s infinite ease-in-out"; 
         }
 
-        function addMoney(amount) {
-            state.money += amount;
-            elements.moneyCount.innerText = state.money;
-            showEffect("");
-        }
-
         function showEffect(text) {
             const effect = document.createElement('div');
             effect.className = 'effect-text';
@@ -1483,6 +2281,78 @@
             resetVisuals();
             startWorkLoop();
             performRandomCelebration();
+        });
+
+        // === Onboard教程功能 ===
+        function checkAndShowOnboard() {
+            const hasSeenOnboard = localStorage.getItem('hasSeenOnboard');
+            if (!hasSeenOnboard) {
+                setTimeout(() => {
+                    showOnboard();
+                }, 1000); // 延迟1秒显示，让界面先加载完成
+            }
+        }
+
+        function showOnboard() {
+            elements.onboardModal.style.display = 'block';
+            setWindowClickThrough(false);
+            updateOnboardProgress(1);
+        }
+
+        function hideOnboard() {
+            elements.onboardModal.style.display = 'none';
+            localStorage.setItem('hasSeenOnboard', 'true');
+            setWindowClickThrough(true);
+        }
+
+        function updateOnboardProgress(step) {
+            const progressContainer = document.getElementById('onboard-progress');
+            const totalSteps = 4;
+            progressContainer.innerHTML = '';
+            
+            for (let i = 1; i <= totalSteps; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'onboard-dot';
+                if (i === step) {
+                    dot.classList.add('active');
+                }
+                progressContainer.appendChild(dot);
+            }
+
+            // 显示对应步骤
+            document.querySelectorAll('.onboard-step').forEach(stepEl => {
+                stepEl.classList.remove('active');
+            });
+            document.querySelector(`.onboard-step[data-step="${step}"]`).classList.add('active');
+        }
+
+        let currentOnboardStep = 1;
+        const totalOnboardSteps = 4;
+
+        // 使用事件委托处理所有onboard按钮
+        elements.onboardModal.addEventListener('click', (e) => {
+            if (e.target.classList.contains('onboard-next')) {
+                if (currentOnboardStep < totalOnboardSteps) {
+                    currentOnboardStep++;
+                    updateOnboardProgress(currentOnboardStep);
+                } else {
+                    hideOnboard();
+                }
+            } else if (e.target.classList.contains('onboard-prev')) {
+                if (currentOnboardStep > 1) {
+                    currentOnboardStep--;
+                    updateOnboardProgress(currentOnboardStep);
+                }
+            } else if (e.target.classList.contains('onboard-skip') || e.target.classList.contains('onboard-finish')) {
+                hideOnboard();
+            }
+        });
+
+        // 点击背景关闭onboard
+        elements.onboardModal.addEventListener('click', (e) => {
+            if (e.target === elements.onboardModal || e.target.classList.contains('onboard-overlay')) {
+                hideOnboard();
+            }
         });
 
         init();
