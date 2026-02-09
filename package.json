@@ -1,7 +1,7 @@
 {
   "name": "money-leopard-pet",
   "version": "1.0.0",
-  "description": "一只帮你进钱的桌面金钱豹",
+  "description": "豹豹保护你的医保",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -16,7 +16,7 @@
   },
   "build": {
     "appId": "com.moneyleopard.pet",
-    "productName": "🐆金钱豹",
+    "productName": "🐆豹豹保护你的医保",
     "compression": "maximum",
     "asar": true,
     "files": [
